@@ -1,0 +1,662 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
+import SideMenu from '../components/SideMenu';
+import RibbonProgress from '../components/RibbonProgress';
+import clickGif from '../assets/images/click.gif';
+import bgImage from '../assets/images/bg02.png';
+import { getUserData, getDoctorData, acceptTerms, saveDoctorData, takePledge, getPledgeCount } from '../services/api';
+
+// Extend Window interface for SpeechRecognition API
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+interface ISpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  onstart: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => ISpeechRecognition;
+    webkitSpeechRecognition: new () => ISpeechRecognition;
+  }
+}
+
+const TakePledge: React.FC = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  //const [ribbonProgress, setRibbonProgress] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showConsent, setShowConsent] = useState(true);
+  const [pledgeCompleted, setPledgeCompleted] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [isAcceptingTerms, setIsAcceptingTerms] = useState(false);
+  const [doctorName, setDoctorName] = useState('');
+  
+  // Pledge count states
+  const [_currentPledgeCount, setCurrentPledgeCount] = useState(0);
+  const TARGET_PLEDGE_COUNT = 10000; // Target: 10,000 doctors
+  
+  // Speech recognition states
+  const [isListening, setIsListening] = useState(false);
+  const [_error, setError] = useState<string | null>(null);
+  const [isSupported, setIsSupported] = useState(true);
+  const [showSkipButton, setShowSkipButton] = useState(false);
+  
+  const navigate = useNavigate();
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
+  const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Calculate ribbon progress percentage
+   * - If count <= 200: Show minimum 25% fill
+   * - If count > 200: Show actual percentage (count / 10,000) * 100
+   */
+  const calculateRibbonPercentage = (count: number): number => {
+    if (count <= 200) {
+      return 25; // Minimum 25% when count is 200 or less
+    }
+    // Calculate actual percentage for counts > 200
+    return Math.min((count / TARGET_PLEDGE_COUNT) * 100, 100);
+  };
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
+  // Get user data and check terms acceptance
+  useEffect(() => {
+    const userData = getUserData();
+    if (userData) {
+      setUserName(userData.name);
+    }
+
+    // Check if doctor has already accepted terms
+    const doctorData = getDoctorData();
+    console.log('TakePledge page loaded. Doctor data:', doctorData);
+    
+    if (doctorData) {
+      setDoctorName(doctorData.dr_name);
+      
+      if (doctorData.terms_accepted) {
+        // Terms already accepted, don't show popup
+        console.log('Terms already accepted, hiding popup');
+        setShowConsent(false);
+      } else {
+        console.log('Terms not accepted, showing popup');
+      }
+    } else {
+      console.log('No doctor data found');
+    }
+    
+    // Don't fetch pledge count on page load - only show ribbon after pledge is taken
+  }, []);
+
+  // Show skip button after 3 seconds when consent is accepted and page is ready
+  useEffect(() => {
+    if (!showConsent && !pledgeCompleted && !isListening) {
+      // Start timer to show skip button after 3 seconds
+      skipTimerRef.current = setTimeout(() => {
+        setShowSkipButton(true);
+      }, 3000);
+    }
+
+    return () => {
+      // Cleanup timer if component unmounts or conditions change
+      if (skipTimerRef.current) {
+        clearTimeout(skipTimerRef.current);
+        skipTimerRef.current = null;
+      }
+    };
+  }, [showConsent, pledgeCompleted, isListening]);
+
+  /**
+   * Handle accepting terms and conditions
+   */
+  const handleAcceptTerms = async () => {
+    setIsAcceptingTerms(true);
+
+    try {
+      const doctorData = getDoctorData();
+      
+      if (!doctorData) {
+        console.error('No doctor data found');
+        alert('Doctor information not found. Please fill HCP details first.');
+        setShowConsent(false);
+        setIsAcceptingTerms(false);
+        return;
+      }
+
+      console.log('Calling acceptTerms API for doctor ID:', doctorData.id);
+
+      // Call API to accept terms
+      const response = await acceptTerms(doctorData.id);
+
+      console.log('Accept terms response:', response);
+
+      if (response.success) {
+        // Update doctor data in localStorage
+        saveDoctorData(response.data);
+        console.log('Terms accepted successfully, updated data:', response.data);
+        // Hide consent popup
+        setShowConsent(false);
+      } else {
+        console.error('API returned success: false');
+        alert('Failed to save terms acceptance');
+      }
+    } catch (err) {
+      console.error('Failed to accept terms:', err);
+      alert('Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      // Still hide the popup even if API fails
+      setShowConsent(false);
+    } finally {
+      setIsAcceptingTerms(false);
+    }
+  };
+
+  /**
+   * Checks if transcript matches at least 50% of target phrase words
+   * Target phrase: "Regain confidence in my acne patients"
+   * @param text - The transcript text to check
+   * @returns boolean indicating if a match was found
+   */
+  const checkForTargetWords = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    const words = lowerText.split(/\s+/);
+    
+    let matchCount = 0;
+    
+    // Check for key words from "Regain confidence in my acne patients"
+    // Check for "regain" or similar
+    if (words.some(w => w.includes('regain') || w.includes('gain') || w.includes('re'))) matchCount++;
+    
+    // Check for "confidence" or similar
+    if (words.some(w => w.includes('confidence') || w.includes('confident'))) matchCount++;
+    
+    // Check for "acne" or similar
+    if (words.some(w => w.includes('acne') || w.includes('acni') || w.includes('akne'))) matchCount++;
+    
+    // Check for "patients" or similar
+    if (words.some(w => w.includes('patient') || w.includes('patients'))) matchCount++;
+    
+    // Check for "my"
+    if (words.includes('my')) matchCount++;
+    
+    // Check for "in"
+    if (words.includes('in')) matchCount++;
+    
+    // Need at least 3 out of 6 words (50%)
+    const requiredMatches = 3;
+    console.log(`Speech match count: ${matchCount}/${requiredMatches} required`);
+    return matchCount >= requiredMatches;
+  };
+
+  /**
+   * Handles successful speech detection
+   * Stops recognition and saves pledge to database
+   */
+  const handleSuccessfulDetection = async () => {
+    // Stop speech recognition
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    
+    // Clear skip button timer and hide skip button
+    if (skipTimerRef.current) {
+      clearTimeout(skipTimerRef.current);
+      skipTimerRef.current = null;
+    }
+    setShowSkipButton(false);
+    
+    // Update visual states
+    setIsListening(false);
+    setIsAnimating(true);
+    
+    // Save pledge first to get updated count
+    const completePledge = async () => {
+      try {
+        const doctorData = getDoctorData();
+        if (doctorData) {
+          console.log('Saving pledge to database for doctor:', doctorData.id);
+          const response = await takePledge(doctorData.id);
+          if (response.success) {
+            saveDoctorData(response.data);
+            console.log('Pledge saved successfully!');
+          }
+        }
+        
+        // Fetch updated pledge count
+        const countResponse = await getPledgeCount();
+        if (countResponse.success) {
+          const newCount = countResponse.data.count;
+          setCurrentPledgeCount(newCount);
+          
+          // Calculate target percentage based on count
+          // If count <= 200: minimum 25%, otherwise actual percentage
+          const targetPercentage = calculateRibbonPercentage(newCount);
+          console.log(`New pledge count: ${newCount}/${TARGET_PLEDGE_COUNT} (${targetPercentage.toFixed(2)}%)`);
+          
+          // Animate ribbon to the actual percentage
+          animateToPercentage(targetPercentage);
+        }
+      } catch (error) {
+        console.error('Error saving pledge:', error);
+        setPledgeCompleted(true);
+      }
+    };
+    
+    // Function to animate ribbon to target percentage
+    const animateToPercentage = (_targetPercentage: number) => {
+      const animationDuration = 2000; // Total animation time in ms
+      // const startProgress = 0; // Always start from 0 since ribbon is empty initially
+      let startTime: number | null = null;
+      
+      // Ease-out cubic for smooth deceleration
+      // const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
+      
+      const animateProgress = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const linearProgress = Math.min(elapsed / animationDuration, 1);
+        
+        // Apply easing and interpolate from 0 to target percentage
+        //const easedProgress = easeOutCubic(linearProgress);
+        //const currentProgress = startProgress + (targetPercentage - startProgress) * easedProgress;
+        //setRibbonProgress(currentProgress);
+        
+        if (linearProgress < 1) {
+          requestAnimationFrame(animateProgress);
+        } else {
+          // Animation complete
+          //setRibbonProgress(targetPercentage);
+          setPledgeCompleted(true);
+        }
+      };
+      
+      requestAnimationFrame(animateProgress);
+    };
+    
+    // Start the process
+    await completePledge();
+    
+    console.log('Speech detected! Pledge completed!');
+  };
+
+  /**
+   * Initializes and starts speech recognition
+   */
+  const startSpeechRecognition = () => {
+    // Check browser support
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognitionAPI) {
+      setError('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      setIsSupported(false);
+      return;
+    }
+
+    // Create new recognition instance
+    const recognition = new SpeechRecognitionAPI();
+    recognitionRef.current = recognition;
+
+    // Configure recognition settings
+    recognition.continuous = true; // Keep listening until stopped
+    recognition.interimResults = true; // Get results while speaking
+    recognition.lang = 'en-US'; // Set language to English
+
+    // Handle speech recognition start
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError(null);
+      console.log('Speech recognition started');
+    };
+
+    // Handle speech recognition results
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      // Process all results
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+
+      const combinedTranscript = finalTranscript || interimTranscript;
+      console.log('Transcript:', combinedTranscript);
+
+      // Check if any target word is detected
+      if (checkForTargetWords(combinedTranscript)) {
+        console.log('Target word detected in:', combinedTranscript);
+        handleSuccessfulDetection();
+      }
+    };
+
+    // Handle speech recognition errors
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+
+      switch (event.error) {
+        case 'not-allowed':
+          setError('Microphone access denied. Please allow microphone permissions and try again.');
+          break;
+        case 'no-speech':
+          setError('No speech detected. Please try again and speak clearly.');
+          break;
+        case 'audio-capture':
+          setError('No microphone found. Please connect a microphone and try again.');
+          break;
+        case 'network':
+          setError('Network error occurred. Please check your connection.');
+          break;
+        default:
+          setError(`Speech recognition error: ${event.error}`);
+      }
+    };
+
+    // Handle speech recognition end
+    recognition.onend = () => {
+      console.log('Speech recognition ended');
+      // Only reset if not navigating
+      if (!isAnimating) {
+        setIsListening(false);
+      }
+    };
+
+    // Request microphone permission and start recognition
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err);
+      setError('Failed to start speech recognition. Please try again.');
+    }
+  };
+
+  /**
+   * Stops speech recognition manually
+   */
+  const stopSpeechRecognition = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  /**
+   * Handles pledge button click - starts speech recognition
+   */
+  const handlePledgeClick = () => {
+    if (isListening) {
+      // If already listening, stop recognition
+      stopSpeechRecognition();
+      // Clear skip button timer
+      if (skipTimerRef.current) {
+        clearTimeout(skipTimerRef.current);
+        skipTimerRef.current = null;
+      }
+      setShowSkipButton(false);
+    } else {
+      // Start speech recognition
+      setError(null);
+      setShowSkipButton(false);
+      startSpeechRecognition();
+      
+      // Show skip button after 3 seconds
+      skipTimerRef.current = setTimeout(() => {
+        setShowSkipButton(true);
+      }, 3000);
+    }
+  };
+
+  /**
+   * Handles skip button click - bypasses speech recognition
+   */
+  const handleSkipClick = () => {
+    // Clear skip timer
+    if (skipTimerRef.current) {
+      clearTimeout(skipTimerRef.current);
+      skipTimerRef.current = null;
+    }
+    setShowSkipButton(false);
+    
+    // Trigger successful detection (same as speech recognition success)
+    handleSuccessfulDetection();
+  };
+
+  // Cleanup speech recognition on component unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+        recognitionRef.current = null;
+      }
+      // Clear skip button timer
+      if (skipTimerRef.current) {
+        clearTimeout(skipTimerRef.current);
+        skipTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  
+
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
+
+  return (
+    <div className="h-screen flex flex-col relative overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-right md:bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${bgImage})` }}
+      />
+      
+      {/* Consent Popup */}
+      {showConsent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-white w-[95%] sm:w-[92%] md:w-[85%] lg:w-[80%] xl:w-[75%] max-w-5xl mx-2 sm:mx-4 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden">
+            {/* Popup Header */}
+           
+            
+            {/* Popup Content */}
+            <div className="px-4 sm:px-6 md:px-8 py-8 sm:py-6 max-h-[50vh] sm:max-h-[55vh] md:max-h-[60vh] overflow-y-auto">
+              <p className="text-black text-[18px] text-center">
+                <b>CONSENT:</b> I hereby agree, declare and confirm my Personal Identifiable Information (PII) and / or Sensitive
+Personal Data and Information (SPDI) to be used, stored by Sun Pharmaceutical Industries Ltd and I do hereby
+provide my unconditional consent and authorize Sunpharma to act upon, use, store, transfer the information (PII
+and/or SPDI) to third party for various purposes including but not limited to marketing activities, creating record in
+Asia Book of Records for Acne Awareness Month. I understand, agree, declare, confirm and acknowledge that the
+portal /platform used by Sunpharma may have servers residing outside of India and/ or managed by third party
+technology providers who will have access to the PII and / or SPDI and I hereby expressly consent to my information
+being stored/used through such portal/platform by Sunpharma and / or third party.
+              </p>
+              
+            </div>
+            
+            {/* Popup Footer */}
+            <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 flex justify-center">
+              <button
+                onClick={handleAcceptTerms}
+                disabled={isAcceptingTerms}
+                className="prplbtn1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                {isAcceptingTerms ? 'Processing...' : 'I Agree'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Page Content - Only visible after consent */}
+      <div className={showConsent ? 'visible' : 'visible'}>
+        {/* Gradient Header Overlay */}
+        <div className="absolute top-0 left-0 right-0 h-14 lg:h-16 xl:h-20 2xl:h-24 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col min-h-screen">
+        <Header onMenuClick={toggleMenu} userName={userName} />
+        <SideMenu isOpen={isMenuOpen} onClose={closeMenu} userName={userName} />
+        
+        {/* Doctor Info - Right side below header */}
+        <div className="relative lg:absolute lg:top-20 xl:top-28 right-2 lg:right-6 z-10 text-right px-4 py-2 lg:p-0 xl:right-10">
+          <p className="text-[12px] lg:text-[14px] xl:text-[15px] text-gray-900 font-medium">Doctor Name: <span className="font-normal">{doctorName || 'N/A'}</span></p>
+        </div>
+        
+       <main className="flex-1 flex items-center justify-center text-center">
+  <div className="w-[90%] lg:w-[80%] flex flex-col md:flex-row gap-2 lg:gap-4 justify-center items-center py-2 lg:py-4 xl:py-8 text-center pledge-container">
+              
+
+                {/* Text Content */}
+               <div className="w-full md:w-[62%] text-center">
+                  {/* Show speech UI or Continue button after pledge */}
+                  {!pledgeCompleted && !isAnimating ? (
+                    <>
+                      {/* Show pledge content only before success */}
+                     <h3 className="text-gray-800 leading-tight mb-2 lg:mb-4 xl:mb-6 text-center pledge-text text-[18px] md:text-[26px] font-bold">
+                       I pledge to regain coNFidence in my acne patients with minimal dietary restrictions and spreading awareness on treatment compliance
+                      </h3>
+                      
+                    
+                      
+                      <p className="text-base lg:text-lg xl:text-2xl font-bold text-purple-900 leading-tight mb-2 lg:mb-4 xl:mb-8 text-center pledge-heading">
+                        {isListening ? 'Listening... Say the pledge!' : 'Click here and say'}
+                      </p>
+                      
+                      {/* Recording Indicator - Shows when listening */}
+                      {isListening && (
+                        <div className="flex flex-col items-center justify-center mb-6">
+                          {/* Pulsing Mic Animation */}
+                          <div className="relative flex items-center justify-center">
+                            {/* Outer pulse rings */}
+                            <div className="absolute w-24 h-24 bg-red-400 rounded-full animate-ping opacity-20"></div>
+                            <div className="absolute w-20 h-20 bg-red-500 rounded-full animate-ping opacity-30 animation-delay-200"></div>
+                            {/* Inner mic circle */}
+                            <div className="relative w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-lg z-10">
+                              {/* Mic Icon */}
+                              <svg 
+                                className="w-8 h-8 text-white animate-pulse" 
+                                fill="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"/>
+                                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Browser Support Warning */}
+                      {!isSupported && (
+                        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-700 text-sm">
+                          Speech recognition not supported. Please use Chrome, Edge, or Safari.
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={handlePledgeClick}
+                        disabled={!isSupported}
+                        className={`relative inline-flex items-center gap-2 rounded-full shadow-lg duration-300 mb-2 lg:mb-4 xl:mb-8 pldgbtn ${
+                          isListening 
+                            ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
+                            : 'hover:shadow-xl hover:-translate-y-1'
+                        } ${!isSupported ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        {isListening ? 'Stop Listening' : '"Regain coNFidence in my Acne patients"'}
+                        {!isListening && (
+                          <span className="clickgif">
+                            <img src={clickGif} alt="Click Animation" />
+                          </span>
+                        )}
+                      </button>
+                      
+                      <p className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-purple-900 leading-relaxed mb-2 lg:mb-4 text-center pledge-subheading">
+                        {isListening ? 'Say "Regain coNFidence in my Acne patients"' : 'to take pledge'}
+                      </p>
+                      
+                      {/* Skip Button - Shows after 3 seconds */}
+                      {showSkipButton && (
+                        <button
+                          onClick={handleSkipClick}
+                          className="px-8 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-full text-base font-medium transition-all duration-300 animate-fade-in mb-1"
+                        >
+                          Skip
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    /* Just Continue button - Shown after pledge is detected */
+                    <div className="flex flex-col items-center justify-center animate-fade-in">
+                     <h3 className="text-gray-800 leading-snug mb-2 lg:mb-4 xl:mb-6 text-center pledge-text text-[20px] md:text-[30px] font-bold">
+                       I pledge to regain coNFidence in my acne patients with minimal dietary restrictions and spreading awareness on treatment compliance
+                      </h3>
+                      <button
+                        onClick={() => navigate('/thank-you')}
+                        className="prplbtn1 shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300"
+                      >
+                        Continue
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                  {/* Gray Awareness Ribbon with Progress */}
+                 <div className="w-full md:w-[25%] text-center z-20">
+                   <RibbonProgress
+                     percentage={pledgeCompleted || isAnimating ? 100 : 0}
+                     transitionDuration={2000}
+                     className={`m-auto ribbon-wrapper transition-transform duration-700 ease-out ${
+                       isAnimating 
+                         ? 'scale-105' 
+                         : 'scale-100'
+                     }`}
+                   />
+                </div>
+              </div>
+            
+          
+          <footer className="absolute right-1 sm:right-2 md:right-4 top-1/2 -translate-y-1/2 z-10">
+            <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-900" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+              All the images used in this material are for illustration purposes only
+            </p>
+          </footer>
+        </main>
+      </div>
+      </div>
+    </div>
+  );
+};
+
+export default TakePledge;
