@@ -8,8 +8,9 @@ import {
   importFieldTeams,
   getAllStates,
   getAllHqs,
+  getAllDesignations,
 } from '../../services/adminApi';
-import type { FieldTeam, State, Hq } from '../../services/adminApi';
+import type { FieldTeam, State, Hq, Designation } from '../../services/adminApi';
 
 const FieldTeamList: React.FC = () => {
   const navigate = useNavigate();
@@ -25,11 +26,13 @@ const FieldTeamList: React.FC = () => {
   const [filters, setFilters] = useState({
     state_id: 0,
     hq_id: 0,
+    designation_id: 0,
   });
 
   // Filter options
   const [states, setStates] = useState<State[]>([]);
   const [hqs, setHqs] = useState<Hq[]>([]);
+  const [designations, setDesignations] = useState<Designation[]>([]);
 
   const fetchData = useCallback(async (page = 1) => {
     try {
@@ -39,6 +42,7 @@ const FieldTeamList: React.FC = () => {
         search,
         state_id: filters.state_id || undefined,
         hq_id: filters.hq_id || undefined,
+        designation_id: filters.designation_id || undefined,
       });
       if (response.success) {
         setData(response.data.data);
@@ -63,8 +67,12 @@ const FieldTeamList: React.FC = () => {
   useEffect(() => {
     const loadFilterOptions = async () => {
       try {
-        const statesRes = await getAllStates();
+        const [statesRes, designationsRes] = await Promise.all([
+          getAllStates(),
+          getAllDesignations(),
+        ]);
         if (statesRes.success) setStates(statesRes.data);
+        if (designationsRes.success) setDesignations(designationsRes.data);
       } catch (error) {
         console.error('Failed to load filter options:', error);
       }
@@ -122,7 +130,11 @@ const FieldTeamList: React.FC = () => {
     { key: 'employee_id', title: 'Employee ID' },
     { key: 'mobile', title: 'Mobile' },
     { key: 'email', title: 'Email' },
-    { key: 'designation', title: 'Designation' },
+    {
+      key: 'designation',
+      title: 'Designation',
+      render: (item: FieldTeam) => item.designation_master?.name || item.designation || '-',
+    },
     {
       key: 'state',
       title: 'State',
@@ -168,6 +180,18 @@ const FieldTeamList: React.FC = () => {
         {hqs.map((hq) => (
           <option key={hq.id} value={hq.id}>
             {hq.name}
+          </option>
+        ))}
+      </select>
+      <select
+        value={filters.designation_id}
+        onChange={(e) => setFilters({ ...filters, designation_id: Number(e.target.value) })}
+        className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
+      >
+        <option value={0}>All Designations</option>
+        {designations.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name} ({d.code})
           </option>
         ))}
       </select>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getFieldTeam } from '../../services/adminApi';
+import { getFieldTeam, bulkImportDoctors, downloadDoctorSampleCsv } from '../../services/adminApi';
 import type { FieldTeam, Doctor } from '../../services/adminApi';
 
 type FieldTeamWithDoctors = FieldTeam & { doctors?: Doctor[] };
@@ -10,6 +10,8 @@ const FieldTeamView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [fieldTeam, setFieldTeam] = useState<FieldTeamWithDoctors | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -91,7 +93,13 @@ const FieldTeamView: React.FC = () => {
             </div>
             <div>
               <label className="text-sm text-gray-500">Designation</label>
-              <p className="text-gray-800 font-medium">{fieldTeam.designation || '-'}</p>
+              <p className="text-gray-800 font-medium">{fieldTeam.designation_master?.name || fieldTeam.designation || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">Reporting To</label>
+              <p className="text-gray-800 font-medium">
+                {fieldTeam.reporting_to ? `${fieldTeam.reporting_to.name} (${fieldTeam.reporting_to.employee_id})` : '-'}
+              </p>
             </div>
           </div>
         </div>
@@ -115,9 +123,59 @@ const FieldTeamView: React.FC = () => {
         <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-800">Aligned Doctors</h2>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-              {fieldTeam.doctors?.length || 0} doctors
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                {fieldTeam.doctors?.length || 0} doctors
+              </span>
+              <button
+                onClick={async () => {
+                  try {
+                    const blob = await downloadDoctorSampleCsv();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'doctors_sample.csv';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                  } catch (error) {
+                    alert('Failed to download sample CSV');
+                  }
+                }}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Download Sample CSV
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".csv"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !id) return;
+                  setIsImporting(true);
+                  try {
+                    const result = await bulkImportDoctors(file, parseInt(id));
+                    alert(result.message);
+                    // Reload data
+                    const response = await getFieldTeam(parseInt(id));
+                    if (response.success) setFieldTeam(response.data);
+                  } catch (error) {
+                    alert(error instanceof Error ? error.message : 'Import failed');
+                  } finally {
+                    setIsImporting(false);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }
+                }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+                className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {isImporting ? 'Importing...' : 'Bulk Import Doctors'}
+              </button>
+            </div>
           </div>
 
           {fieldTeam.doctors && fieldTeam.doctors.length > 0 ? (

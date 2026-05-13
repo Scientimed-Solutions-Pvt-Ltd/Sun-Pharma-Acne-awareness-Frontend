@@ -49,6 +49,18 @@ export interface State {
   updated_at?: string;
 }
 
+export interface Designation {
+  id: number;
+  name: string;
+  code: string;
+  reports_to_id: number | null;
+  reports_to?: Designation;
+  level: number;
+  field_teams_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface FieldTeam {
   id: number;
   name: string;
@@ -56,6 +68,10 @@ export interface FieldTeam {
   mobile: string;
   email: string;
   designation: string;
+  designation_id: number;
+  designation_master?: Designation;
+  reporting_to_id: number | null;
+  reporting_to?: FieldTeam;
   state_id: number;
   hq_id: number;
   state_master?: State;
@@ -545,12 +561,13 @@ export const importHqs = async (file: File): Promise<{ success: boolean; message
 };
 
 // Field Team APIs
-export const getFieldTeams = async (params?: { page?: number; search?: string; state_id?: number; hq_id?: number; per_page?: number }): Promise<PaginatedResponse<FieldTeam>> => {
+export const getFieldTeams = async (params?: { page?: number; search?: string; state_id?: number; hq_id?: number; designation_id?: number; per_page?: number }): Promise<PaginatedResponse<FieldTeam>> => {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set('page', params.page.toString());
   if (params?.search) queryParams.set('search', params.search);
   if (params?.state_id) queryParams.set('state_id', params.state_id.toString());
   if (params?.hq_id) queryParams.set('hq_id', params.hq_id.toString());
+  if (params?.designation_id) queryParams.set('designation_id', params.designation_id.toString());
   if (params?.per_page) queryParams.set('per_page', params.per_page.toString());
 
   const response = await fetch(`${API_BASE_URL}/admin/field-teams?${queryParams}`, {
@@ -581,9 +598,10 @@ export const createFieldTeam = async (data: {
   employee_id: string;
   mobile: string;
   email: string;
-  designation: string;
+  designation_id: number;
   state_id: number;
   hq_id: number;
+  reporting_to_id?: number | null;
 }): Promise<SingleResponse<FieldTeam>> => {
   const response = await fetch(`${API_BASE_URL}/admin/field-teams`, {
     method: 'POST',
@@ -604,9 +622,10 @@ export const updateFieldTeam = async (id: number, data: {
   employee_id: string;
   mobile: string;
   email: string;
-  designation: string;
+  designation_id: number;
   state_id: number;
   hq_id: number;
+  reporting_to_id?: number | null;
 }): Promise<SingleResponse<FieldTeam>> => {
   const response = await fetch(`${API_BASE_URL}/admin/field-teams/${id}`, {
     method: 'PUT',
@@ -679,6 +698,131 @@ export const getFieldTeamsByHq = async (hqId: number): Promise<{ success: boolea
   }
 
   return response.json();
+};
+
+export const getReportingOptions = async (params?: { hq_id?: number; designation_id?: number }): Promise<{ success: boolean; data: FieldTeam[] }> => {
+  const queryParams = new URLSearchParams();
+  if (params?.hq_id) queryParams.set('hq_id', params.hq_id.toString());
+  if (params?.designation_id) queryParams.set('designation_id', params.designation_id.toString());
+
+  const response = await fetch(`${API_BASE_URL}/admin/field-teams/reporting-options?${queryParams}`, {
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch reporting options');
+  }
+
+  return response.json();
+};
+
+// Designation APIs
+export const getAllDesignations = async (): Promise<{ success: boolean; data: Designation[] }> => {
+  const response = await fetch(`${API_BASE_URL}/admin/designations/all`, {
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch designations');
+  }
+
+  return response.json();
+};
+
+export const getDesignations = async (params?: { page?: number; search?: string; per_page?: number }): Promise<PaginatedResponse<Designation>> => {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set('page', params.page.toString());
+  if (params?.search) queryParams.set('search', params.search);
+  if (params?.per_page) queryParams.set('per_page', params.per_page.toString());
+
+  const response = await fetch(`${API_BASE_URL}/admin/designations?${queryParams}`, {
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch designations');
+  }
+
+  return response.json();
+};
+
+export const createDesignation = async (data: { name: string; code: string; reports_to_id?: number | null; level: number }): Promise<SingleResponse<Designation>> => {
+  const response = await fetch(`${API_BASE_URL}/admin/designations`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create designation');
+  }
+
+  return response.json();
+};
+
+export const updateDesignation = async (id: number, data: { name: string; code: string; reports_to_id?: number | null; level: number }): Promise<SingleResponse<Designation>> => {
+  const response = await fetch(`${API_BASE_URL}/admin/designations/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update designation');
+  }
+
+  return response.json();
+};
+
+export const deleteDesignation = async (id: number): Promise<{ success: boolean }> => {
+  const response = await fetch(`${API_BASE_URL}/admin/designations/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete designation');
+  }
+
+  return response.json();
+};
+
+// Bulk Doctor Import
+export const bulkImportDoctors = async (file: File, fieldTeamId: number): Promise<{ success: boolean; message: string; data: { imported: number; errors: string[] } }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('field_team_id', fieldTeamId.toString());
+
+  const token = getAdminToken();
+  const response = await fetch(`${API_BASE_URL}/admin/doctors/bulk-import`, {
+    method: 'POST',
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to import doctors');
+  }
+
+  return response.json();
+};
+
+export const downloadDoctorSampleCsv = async (): Promise<Blob> => {
+  const response = await fetch(`${API_BASE_URL}/admin/doctors/sample-csv`, {
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to download sample CSV');
+  }
+
+  return response.blob();
 };
 
 // Doctor APIs

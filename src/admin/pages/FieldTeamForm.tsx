@@ -6,17 +6,20 @@ import {
   getFieldTeam,
   getAllStates,
   getAllHqs,
+  getAllDesignations,
+  getReportingOptions,
 } from '../../services/adminApi';
-import type { State, Hq } from '../../services/adminApi';
+import type { State, Hq, Designation, FieldTeam } from '../../services/adminApi';
 
 interface FormData {
   name: string;
   employee_id: string;
   mobile: string;
   email: string;
-  designation: string;
+  designation_id: number;
   state_id: number;
   hq_id: number;
+  reporting_to_id: number | null;
 }
 
 const FieldTeamForm: React.FC = () => {
@@ -29,9 +32,10 @@ const FieldTeamForm: React.FC = () => {
     employee_id: '',
     mobile: '',
     email: '',
-    designation: '',
+    designation_id: 0,
     state_id: 0,
     hq_id: 0,
+    reporting_to_id: null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,14 +45,20 @@ const FieldTeamForm: React.FC = () => {
   // Options
   const [states, setStates] = useState<State[]>([]);
   const [hqs, setHqs] = useState<Hq[]>([]);
+  const [designations, setDesignations] = useState<Designation[]>([]);
+  const [reportingOptions, setReportingOptions] = useState<FieldTeam[]>([]);
 
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const statesRes = await getAllStates();
+        const [statesRes, designationsRes] = await Promise.all([
+          getAllStates(),
+          getAllDesignations(),
+        ]);
         if (statesRes.success) setStates(statesRes.data);
+        if (designationsRes.success) setDesignations(designationsRes.data);
       } catch (error) {
-        console.error('Failed to load states:', error);
+        console.error('Failed to load options:', error);
       }
     };
     loadOptions();
@@ -66,15 +76,22 @@ const FieldTeamForm: React.FC = () => {
               employee_id: ft.employee_id,
               mobile: ft.mobile || '',
               email: ft.email || '',
-              designation: ft.designation || '',
+              designation_id: ft.designation_id || 0,
               state_id: ft.state_id,
               hq_id: ft.hq_id,
+              reporting_to_id: ft.reporting_to_id || null,
             });
 
             // Load hqs for the existing state
             if (ft.state_id) {
               const hqsRes = await getAllHqs(ft.state_id);
               if (hqsRes.success) setHqs(hqsRes.data);
+            }
+
+            // Load reporting options
+            if (ft.hq_id && ft.designation_id) {
+              const roRes = await getReportingOptions({ hq_id: ft.hq_id, designation_id: ft.designation_id });
+              if (roRes.success) setReportingOptions(roRes.data);
             }
           }
         } catch (error) {
@@ -98,6 +115,17 @@ const FieldTeamForm: React.FC = () => {
     }
   }, [formData.state_id, isLoadingData]);
 
+  // Load reporting options when hq_id or designation_id changes
+  useEffect(() => {
+    if (formData.hq_id && formData.designation_id && !isLoadingData) {
+      getReportingOptions({ hq_id: formData.hq_id, designation_id: formData.designation_id }).then((res) => {
+        if (res.success) setReportingOptions(res.data);
+      });
+    } else if (!isLoadingData) {
+      setReportingOptions([]);
+    }
+  }, [formData.hq_id, formData.designation_id, isLoadingData]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -106,6 +134,16 @@ const FieldTeamForm: React.FC = () => {
       // Reset dependent fields
       if (name === 'state_id') {
         newData.hq_id = 0;
+        newData.reporting_to_id = null;
+      }
+      if (name === 'hq_id') {
+        newData.reporting_to_id = null;
+      }
+      if (name === 'designation_id') {
+        newData.reporting_to_id = null;
+      }
+      if (name === 'reporting_to_id') {
+        newData.reporting_to_id = value ? parseInt(value) : null;
       }
 
       return newData;
@@ -132,8 +170,8 @@ const FieldTeamForm: React.FC = () => {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
-    if (!formData.designation.trim()) {
-      newErrors.designation = 'Designation is required';
+    if (!formData.designation_id) {
+      newErrors.designation_id = 'Designation is required';
     }
     if (!formData.state_id) {
       newErrors.state_id = 'State is required';
@@ -154,9 +192,14 @@ const FieldTeamForm: React.FC = () => {
     try {
       setIsLoading(true);
       const payload = {
-        ...formData,
+        name: formData.name,
+        employee_id: formData.employee_id,
+        mobile: formData.mobile,
+        email: formData.email,
+        designation_id: Number(formData.designation_id),
         state_id: Number(formData.state_id),
         hq_id: Number(formData.hq_id),
+        reporting_to_id: formData.reporting_to_id ? Number(formData.reporting_to_id) : null,
       };
 
       if (isEdit && id) {
@@ -274,17 +317,22 @@ const FieldTeamForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Designation <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="designation"
-                value={formData.designation}
+              <select
+                name="designation_id"
+                value={formData.designation_id}
                 onChange={handleChange}
                 className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.designation ? 'border-red-500' : 'border-gray-300'
+                  errors.designation_id ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Enter designation"
-              />
-              {errors.designation && <p className="text-red-500 text-sm mt-1">{errors.designation}</p>}
+              >
+                <option value={0}>Select Designation</option>
+                {designations.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.code})
+                  </option>
+                ))}
+              </select>
+              {errors.designation_id && <p className="text-red-500 text-sm mt-1">{errors.designation_id}</p>}
             </div>
 
             {/* State */}
@@ -332,6 +380,30 @@ const FieldTeamForm: React.FC = () => {
                 ))}
               </select>
               {errors.hq_id && <p className="text-red-500 text-sm mt-1">{errors.hq_id}</p>}
+            </div>
+
+            {/* Reporting To */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Reporting To
+              </label>
+              <select
+                name="reporting_to_id"
+                value={formData.reporting_to_id || ''}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                disabled={!formData.hq_id || !formData.designation_id}
+              >
+                <option value="">Select Reporting Manager</option>
+                {reportingOptions.map((ft) => (
+                  <option key={ft.id} value={ft.id}>
+                    {ft.name} ({ft.employee_id}) - {ft.designation_master?.code || ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-gray-500 text-xs mt-1">
+                Select the manager this person reports to. Leave empty if not applicable.
+              </p>
             </div>
           </div>
 

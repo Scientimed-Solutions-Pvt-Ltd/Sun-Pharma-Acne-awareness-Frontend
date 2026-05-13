@@ -54,6 +54,7 @@ const AdminLayout: React.FC = () => {
       children: [
         { name: 'HQs', path: '/admin/masters/hqs' },
         { name: 'States', path: '/admin/masters/states' },
+        { name: 'Designations', path: '/admin/masters/designations' },
       ],
     },
     {

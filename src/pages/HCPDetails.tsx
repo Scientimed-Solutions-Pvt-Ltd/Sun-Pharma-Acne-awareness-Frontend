@@ -143,7 +143,7 @@ const HCPDetails: React.FC = () => {
       {/* Background Image - Desktop */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden lg:block"
-        style={{ backgroundImage: `url(${bgDesktop})` }}
+        style={{ backgroundImage: `url(${bgDesktop})`, backgroundPosition: 'right center' }}
       />
       {/* Gradient Header Overlay */}
       <div className="absolute top-0 left-0 right-0 min-h-20 h-auto md:min-h-20 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
@@ -153,7 +153,7 @@ const HCPDetails: React.FC = () => {
         <SideMenu isOpen={isMenuOpen} onClose={closeMenu} userName={userName} />
         
         <main className="flex-1 flex flex-col justify-center relative overflow-hidden">
-          <div className="px-4 md:px-8 lg:px-16 py-4">
+          <div className="px-4 md:px-8 lg:px-16 py-2 lg:py-4">
             <div className="flex items-center justify-center lg:justify-start">
               <div className="w-full lg:w-1/2">
                 <div className="p-4 md:p-6 lg:p-8 max-w-md mx-auto lg:mx-0">

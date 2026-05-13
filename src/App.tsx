@@ -26,6 +26,8 @@ import HqsList from './admin/pages/HqsList';
 import HqsForm from './admin/pages/HqsForm';
 import StatesList from './admin/pages/StatesList';
 import StatesForm from './admin/pages/StatesForm';
+import DesignationsList from './admin/pages/DesignationsList';
+import DesignationsForm from './admin/pages/DesignationsForm';
 import Reports from './admin/pages/Reports';
 
 // Leaderboard imports
@@ -73,6 +75,11 @@ function App() {
           <Route path="masters/states" element={<StatesList />} />
           <Route path="masters/states/create" element={<StatesForm />} />
           <Route path="masters/states/:id/edit" element={<StatesForm />} />
+          
+          {/* Masters - Designations */}
+          <Route path="masters/designations" element={<DesignationsList />} />
+          <Route path="masters/designations/create" element={<DesignationsForm />} />
+          <Route path="masters/designations/:id/edit" element={<DesignationsForm />} />
           
           {/* Masters - Zones (kept for data integrity) */}
           <Route path="masters/zones" element={<ZonesList />} />
