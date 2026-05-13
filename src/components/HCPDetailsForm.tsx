@@ -322,7 +322,7 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
   const inputClasses = "w-full rounded-xl py-2 px-4 text-base bg-white focus:outline-none focus:shadow-lg focus:shadow-primary/30 transition-shadow placeholder-gray-500";
 
   return (
-     <div className="rounded-2xl p-6 md:p-8 shadow-lg max-w-md formbg">
+     <div className="rounded-2xl p-3 md:p-5 shadow-lg max-w-md formbg">
       <h3 className="text-xl md:text-2xl font-bold text-primary mb-6 text-center">Enter HCP details</h3>
       <form onSubmit={handleSubmit}>
         {error && (

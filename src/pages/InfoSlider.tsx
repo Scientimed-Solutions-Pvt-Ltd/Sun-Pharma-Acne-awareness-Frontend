@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
 import slider1Img from '../assets/images/acne-aware-slider1-img.png';
 import slider1Text from '../assets/images/acne-aware-slider1-text.png';
+import slider1TextSm from '../assets/images/acne-aware-slider1-text-sm.png';
 import slider2Img from '../assets/images/acne-aware-slider2-img.png';
 import slider2Text from '../assets/images/acne-aware-slider2-text.png';
 import { getUserData } from '../services/api';
@@ -13,7 +14,7 @@ const Slide1: React.FC = () => (
   <div className="w-full h-full relative overflow-hidden bg-white">
     <div className="flex flex-col md:flex-row h-full items-center justify-center">
       {/* Left Side - Woman Image */}
-      <div className="w-full md:w-1/2 h-1/2 md:h-full flex items-end justify-center md:justify-end">
+      <div className="w-full lg:w-1/2 h-1/2 md:h-full flex items-end justify-center md:justify-end">
         <img 
           src={slider1Img} 
           alt="Acne Awareness" 
@@ -22,11 +23,18 @@ const Slide1: React.FC = () => (
       </div>
       
       {/* Right Side - Text Content */}
-      <div className="w-full md:w-1/2 h-1/2 md:h-full flex flex-col items-center justify-center md:justify-center md:items-start p-0 md:p-2">
+      <div className="w-full lg:w-1/2 h-1/2 lg:h-full flex flex-col items-center justify-center md:justify-center md:items-start p-0 md:p-2">
+        {/* Mobile/Tablet Image (below 1025px) */}
+        <img 
+          src={slider1TextSm} 
+          alt="Acne Statistics" 
+          className="max-w-full max-h-[85%] object-contain min-[1025px]:hidden"
+        />
+        {/* Desktop Image (1025px and above) */}
         <img 
           src={slider1Text} 
           alt="Acne Statistics" 
-          className="max-w-full max-h-[85%] object-contain"
+          className="max-w-full max-h-[85%] object-contain hidden min-[1025px]:block"
         />
         <p className="ml-6 text-[8px] sm:text-[9px] md:text-[10px] text-black mt-2 px-2 md:px-0 max-w-md">
           <b>References:</b> 1. Madnani N, Saraswat A, Nott A, et al. PRACT-India: Practical Recommendations on Acne Care and Medical Treatment in India-A Modified Delphi Consensus. <em>Antibiotics (Basel).</em> 2025;14(8):844.
@@ -50,7 +58,7 @@ const Slide2: React.FC = () => (
       </div>
       
       {/* Right Side - Text Content */}
-      <div className="w-full md:w-1/2 h-1/2 md:h-full flex flex-col items-center justify-start md:justify-start md:items-start p-0 md:p-2">
+      <div className="w-full lg:w-1/2 h-1/2 lg:h-full flex flex-col items-center justify-start md:justify-start md:items-start p-0 md:p-2">
         <img 
           src={slider2Text} 
           alt="Acne Information" 
@@ -144,7 +152,7 @@ const InfoSlider: React.FC = () => {
       />
       
       {/* Gradient Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 h-20 md:h-24 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
+      <div className="absolute top-0 left-0 right-0 min-h-20 h-auto md:min-h-20 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
       
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">
@@ -198,7 +206,7 @@ const InfoSlider: React.FC = () => {
                     navigate('/take-pledge');
                   }
                 }}
-                className="prplbtn2 shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 mt-6"
+                className="prplbtn2 shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 mt-1"
               >
                 Next 
               </button>

@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import LoginForm from '../components/LoginForm';
 import SideMenu from '../components/SideMenu';
-import bgImage from '../assets/images/bg01.png';
+import bgDesktop from '../assets/images/bg01.png';
+import bgTablet from '../assets/images/bg01-md.png';
+import bgMobile from '../assets/images/bg01-sm.png';
 import aamLogo from '../assets/images/aam-logo.png';
 import { mrLogin, saveUserData } from '../services/api';
 
@@ -64,14 +66,24 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Background Image */}
+      {/* Background Image - Mobile */}
       <div 
-        className="absolute inset-0 bg-cover bg-right md:bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${bgImage})` }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
+        style={{ backgroundImage: `url(${bgMobile})` }}
+      />
+      {/* Background Image - Tablet */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block lg:hidden"
+        style={{ backgroundImage: `url(${bgTablet})` }}
+      />
+      {/* Background Image - Desktop */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden lg:block"
+        style={{ backgroundImage: `url(${bgDesktop})` }}
       />
       
       {/* Gradient Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 h-20 md:h-24 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
+      <div className="absolute top-0 left-0 right-0 min-h-20 h-auto md:min-h-20 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
       
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">
@@ -80,9 +92,9 @@ const Home: React.FC = () => {
         
         <main className="flex-1 flex flex-col justify-center">
           <div className="px-4 md:px-8 lg:px-16 py-8">
-            <div className="flex items-center justify-start">
+            <div className="flex items-center justify-center lg:justify-start">
               <div className="w-full lg:w-1/2">
-                <div className="p-4 md:p-6 lg:p-8 max-w-md">
+                <div className="p-4 md:p-6 lg:p-8 max-w-md mx-auto lg:mx-0">
                   {/* Title */}
                   <img src={aamLogo} alt="Acne Awareness Month Logo" className="mb-6 aam-logo mx-auto block" />
                   

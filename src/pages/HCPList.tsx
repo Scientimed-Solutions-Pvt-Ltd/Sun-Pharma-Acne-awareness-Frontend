@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
-import bgImage from '../assets/images/bg01.png';
+import bgDesktop from '../assets/images/bg01.png';
+import bgTablet from '../assets/images/bg01-md.png';
+import bgMobile from '../assets/images/bg01-sm.png';
 import { getUserData, getDoctorsByFieldTeam } from '../services/api';
 
 interface Doctor {
@@ -93,14 +95,24 @@ const HCPList: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Background Image */}
+      {/* Background Image - Mobile */}
       <div 
-        className="absolute inset-0 bg-cover bg-right md:bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${bgImage})` }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
+        style={{ backgroundImage: `url(${bgMobile})` }}
+      />
+      {/* Background Image - Tablet */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block lg:hidden"
+        style={{ backgroundImage: `url(${bgTablet})` }}
+      />
+      {/* Background Image - Desktop */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden lg:block"
+        style={{ backgroundImage: `url(${bgDesktop})` }}
       />
       
       {/* Gradient Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 h-20 md:h-24 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
+      <div className="absolute top-0 left-0 right-0 min-h-20 h-auto md:min-h-20 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
       
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">

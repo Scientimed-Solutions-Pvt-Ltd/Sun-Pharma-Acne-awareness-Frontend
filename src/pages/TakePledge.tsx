@@ -523,7 +523,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
       {/* Main Page Content - Only visible after consent */}
       <div className={showConsent ? 'visible' : 'visible'}>
         {/* Gradient Header Overlay */}
-        <div className="absolute top-0 left-0 right-0 h-14 lg:h-16 xl:h-20 2xl:h-24 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
+        <div className="absolute top-0 left-0 right-0 min-h-20 h-auto md:min-h-20 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
         
         {/* Content */}
         <div className="relative z-10 flex flex-col min-h-screen">
@@ -551,7 +551,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                       
                     
                       
-                      <p className="text-base lg:text-lg xl:text-2xl font-bold text-purple-900 leading-tight mb-2 lg:mb-4 xl:mb-8 text-center pledge-heading">
+                      <p className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-purple-900 leading-relaxed mb-2 lg:mb-4 text-center pledge-heading">
                         {isListening ? 'Listening... Say the pledge!' : 'Click here and say'}
                       </p>
                       
@@ -610,7 +610,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                       {showSkipButton && (
                         <button
                           onClick={handleSkipClick}
-                          className="px-8 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-full text-base font-medium transition-all duration-300 animate-fade-in mb-1"
+                          className="px-8 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-full text-lg font-medium transition-all duration-300 animate-fade-in mb-1 mt-4"
                         >
                           Skip
                         </button>

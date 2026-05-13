@@ -31,7 +31,7 @@ const RibbonProgress: React.FC<RibbonProgressProps> = ({
       <img
         src={ribbonBase}
         alt="Awareness Ribbon Background"
-         className="w-[40%] m-[30%] mt-0 mb-0 md:w-full md:m-auto h-auto block"
+         className="w-[40%] m-[30%] md:w-[80%] md:m-[10%] mt-0 mb-0 block"
         draggable={false}
       />
 
@@ -54,7 +54,7 @@ const RibbonProgress: React.FC<RibbonProgressProps> = ({
         <img
           src={ribbonFill}
           alt="Awareness Ribbon Progress"
-          className="w-[40%] m-[30%] mt-0 mb-0 md:w-full md:m-auto h-auto block"
+           className="w-[40%] m-[30%] md:w-[80%] md:m-[10%] mt-0 mb-0 block"
           style={{
             // Prevent any jitter during animation
             transform: 'translateZ(0)',

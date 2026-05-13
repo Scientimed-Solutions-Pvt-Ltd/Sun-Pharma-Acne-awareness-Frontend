@@ -71,14 +71,14 @@ const ThankYou: React.FC = () => {
         <SideMenu isOpen={isMenuOpen} onClose={closeMenu} /> */}
         
         <main className="flex-1 flex items-center justify-center text-center">
-          <div className="w-[90%] md:w-[80%] flex flex-col gap-2 justify-center items-center py-4 lg:py-8 text-center">
+          <div className="w-[90%] md:w-[80%] flex flex-col gap-2 justify-center items-center py-4 lg:py-2 text-center">
             {/* Live Count Title */}
             <h2 className="hdng1 text-3xl">
               Live count of pledges taken by<br/>the HCPs across India
             </h2>
 
             {/* Counter Display */}
-            <div className="flex items-center justify-center gap-2 my-2 lg:my-4">
+            <div className="flex items-center justify-center gap-1 my-2 lg:my-2">
               {formatCount(pledgeCount).map((digit, index) => (
                 <div 
                   key={index}
@@ -106,13 +106,13 @@ const ThankYou: React.FC = () => {
                    <img src={sunPharmaLogo} alt="Sun Pharma Logo" className="h-12 md:h-16 lg:h-20 mx-auto my-2" />
         <b>Sun Pharma Laboratories Ltd.</b>
             <br />
-            <span style={{fontSize: '18px'}}>Sun House, Plot No. 201 B/1, Western Express Highway, Goregaon (East), Mumbai – 400 063, India</span>
+            <span style={{fontSize: '16px', lineHeight: 'normal'}}>Sun House, Plot No. 201 B/1, Western Express Highway, Goregaon (East), Mumbai – 400 063, India</span>
             </p>
 
             {/* Home Button */}
             <button
               onClick={() => navigate('/hcp-details')}
-              className="px-8 py-3 text-white font-semibold rounded-full shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+              className="px-4 py-1 text-white font-semibold rounded-full shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               style={{ backgroundColor: '#8f3c84' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7a3370'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f3c84'}

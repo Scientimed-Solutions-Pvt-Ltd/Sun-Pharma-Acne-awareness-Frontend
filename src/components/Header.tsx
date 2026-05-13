@@ -1,6 +1,6 @@
 import React from 'react';
 import sunpharmalogo from '../assets/images/sun-pharma-logo.png';
-import logoImage from '../assets/images/logo.png';
+//import logoImage from '../assets/images/logo.png';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -18,7 +18,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, userName, showMenu = true 
         </div> */}
         
         <div className="w-full px-2 md:px-16">
-          <div className="flex items-center justify-between py-1 lg:py-1 xl:py-2">
+          <div className="flex items-center justify-between pb-1 lg:py-1 xl:py-2">
             <div>
               <img 
                 src={sunpharmalogo} 

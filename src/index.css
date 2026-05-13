@@ -67,6 +67,7 @@ html, body, #root {
   max-height: 140px;
   width: auto;
   max-width: 100%;
+      margin-bottom: 0px;
 }
 
 .endologo-mobile {
@@ -124,12 +125,12 @@ html, body, #root {
 .prplbtn2:hover, .prplbtn2:focus, .prplbtn2:active {
   background-color:#f3bb1c;
   color: #943c88;
-  border: none;
+  /* border: none;
   border-radius: 30px;
   padding:4px 50px 8px;
   font-size: 20px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 600; */
 }
 
 .grybtn1{
@@ -281,7 +282,7 @@ background: linear-gradient(90deg, #A82682 0%, #E3175F 100%);
   }
   
   .counterbg span {
-    font-size: 28px;
+    font-size: 35px;
   }
 }
 
@@ -293,7 +294,7 @@ background: linear-gradient(90deg, #A82682 0%, #E3175F 100%);
     line-height: normal;
     font-family: 'Roboto', sans-serif;
     font-weight: 600;
-    margin-top: 10px;
+    margin-top: 0px;
     float: left;
     width: 100%;
 }
@@ -307,7 +308,7 @@ background: linear-gradient(90deg, #A82682 0%, #E3175F 100%);
     font-family: 'Roboto', sans-serif;
     font-weight: 600;
     margin-top: 10px;
-    margin-bottom: 25px;
+    margin-bottom: 10px;
     float: left;
     width: 100%;
     display: block;
@@ -591,8 +592,9 @@ max-width: 600px;
   /* Pledge button for 1200-1400px */
   .pldgbtn {
     padding: 0px 20px 8px;
-    font-size: 20px;
+    margin-top: 20px;
     border-radius: 30px;
+    font-size: 30px;
   }
   
   .clickgif {
@@ -604,18 +606,18 @@ max-width: 600px;
   
   /* TakePledge page compact layout for 1200-1400px */
   .pledge-text {
-    font-size: 13px !important;
+    font-size: 30px !important;
     line-height: 1.4 !important;
     margin-bottom: 8px !important;
   }
   
   .pledge-heading {
-    font-size: 16px !important;
+    /* font-size: 16px !important; */
     margin-bottom: 8px !important;
   }
   
   .pledge-subheading {
-    font-size: 18px !important;
+    /* font-size: 18px !important; */
     margin-bottom: 6px !important;
   }
   
@@ -628,10 +630,10 @@ max-width: 600px;
   /* Ribbon size for 1200-1400px */
   
   
-  .ribbon-wrapper img {
+  /* .ribbon-wrapper img {
     max-height: 370px !important;
     width: auto !important;
-  }
+  } */
 }
 
 /* Large desktop screens (1400px and above) */
@@ -759,8 +761,9 @@ max-width: 600px;
 /* iPad Mini landscape (1024x768) */
 @media (width: 1024px) {
    .aam-logo {
-    height: auto;
-    max-height: 120px;
+  height: 90px;
+        max-height: 120px;
+        margin-bottom: 0px;
 }
   .contentdiv {
     display: block;
@@ -1554,22 +1557,24 @@ color: #facc15;
 
 @media (max-width: 575px) and (min-width: 150px) {
   .aam-logo {
-    height: auto;
+            height: 85px;
+        max-height: unset;
+        min-height: auto;
 }
   .hdng1 {
-    font-size: 30px;
+    font-size: 25px;
   }
   .thanktext {
     font-size: 25px;
   }
   .thanktext b i {
-            font-size: 30px;
+            font-size: 25px;
         margin-bottom: 5px;
-        margin-top: 15px;
+        margin-top: 5px;
   }
   .thanktext span {
           font-size: 30px;
-        margin-bottom: 15px;
+        margin-bottom: 5px;
   }
 
 .pldgbtn {
@@ -1626,9 +1631,6 @@ color: #facc15;
         margin-top: 0px;
     }
 
-  .aam-logo{
-  height: auto;
-}
 
 .endologo2
 {width: auto;
@@ -1655,7 +1657,9 @@ color: #facc15;
 }
 
 .prplbtn1, .prplbtn2{
-      margin-bottom: 20px !important;
+             margin-bottom: 15px !important;
+        padding: 5px 20px 5px;
+        font-size: 16px;
 }
 
 
