@@ -81,7 +81,7 @@ const Home: React.FC = () => {
       {/* Background Image - Desktop */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden lg:block"
-        style={{ backgroundImage: `url(${bgDesktop})`, backgroundPosition: 'right center' }}
+        style={{ backgroundImage: `url(${bgDesktop})`, backgroundPosition: 'right center' , backgroundSize: 'contain' }}
       />
       
       {/* Gradient Header Overlay */}
