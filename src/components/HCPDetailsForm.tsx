@@ -260,10 +260,6 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
     }
   };
 
-  const handlePhotoClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const removePhoto = () => {
     setPhotoPreview(null);
     setFormData(prev => ({
