@@ -24,6 +24,8 @@ import RegionsList from './admin/pages/RegionsList';
 import RegionsForm from './admin/pages/RegionsForm';
 import HqsList from './admin/pages/HqsList';
 import HqsForm from './admin/pages/HqsForm';
+import StatesList from './admin/pages/StatesList';
+import StatesForm from './admin/pages/StatesForm';
 import Reports from './admin/pages/Reports';
 
 // Leaderboard imports
@@ -62,20 +64,25 @@ function App() {
           <Route path="doctors/:id" element={<DoctorsView />} />
           <Route path="doctors/:id/edit" element={<DoctorsForm />} />
           
-          {/* Masters - Zones */}
-          <Route path="masters/zones" element={<ZonesList />} />
-          <Route path="masters/zones/create" element={<ZonesForm />} />
-          <Route path="masters/zones/:id/edit" element={<ZonesForm />} />
-          
-          {/* Masters - Regions */}
-          <Route path="masters/regions" element={<RegionsList />} />
-          <Route path="masters/regions/create" element={<RegionsForm />} />
-          <Route path="masters/regions/:id/edit" element={<RegionsForm />} />
-          
           {/* Masters - HQs */}
           <Route path="masters/hqs" element={<HqsList />} />
           <Route path="masters/hqs/create" element={<HqsForm />} />
           <Route path="masters/hqs/:id/edit" element={<HqsForm />} />
+          
+          {/* Masters - States */}
+          <Route path="masters/states" element={<StatesList />} />
+          <Route path="masters/states/create" element={<StatesForm />} />
+          <Route path="masters/states/:id/edit" element={<StatesForm />} />
+          
+          {/* Masters - Zones (kept for data integrity) */}
+          <Route path="masters/zones" element={<ZonesList />} />
+          <Route path="masters/zones/create" element={<ZonesForm />} />
+          <Route path="masters/zones/:id/edit" element={<ZonesForm />} />
+          
+          {/* Masters - Regions (kept for data integrity) */}
+          <Route path="masters/regions" element={<RegionsList />} />
+          <Route path="masters/regions/create" element={<RegionsForm />} />
+          <Route path="masters/regions/:id/edit" element={<RegionsForm />} />
           
           {/* Reports */}
           <Route path="reports" element={<Reports />} />

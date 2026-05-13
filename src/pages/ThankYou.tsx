@@ -9,6 +9,8 @@ const ThankYou: React.FC = () => {
   const [pledgeCount, setPledgeCount] = useState(0);
   const [targetCount, setTargetCount] = useState(0);
 
+  useEffect(() => { document.title = 'Thank You | Acne Awareness Month'; }, []);
+
   // Format count to 4 digits
   const formatCount = (count: number): string[] => {
     return count.toString().padStart(4, '0').split('');

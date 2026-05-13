@@ -19,6 +19,8 @@ const HCPDetails: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => { document.title = 'Enter HCP Details | Acne Awareness Month'; }, []);
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };

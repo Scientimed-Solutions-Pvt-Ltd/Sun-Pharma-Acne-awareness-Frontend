@@ -15,6 +15,8 @@ const Home: React.FC = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  useEffect(() => { document.title = 'Acne Awareness Month | Sun Pharma'; }, []);
+
   // const toggleMenu = () => {
   //   setIsMenuOpen(!isMenuOpen);
   // };

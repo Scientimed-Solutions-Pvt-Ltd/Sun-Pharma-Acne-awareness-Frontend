@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin, saveAdminData, saveAdminToken, isAdminAuthenticated } from '../../services/adminApi';
+import sunPharmaLogo from '../../assets/images/sun-pharma-logo.png';
 
 const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -8,6 +9,8 @@ const AdminLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => { document.title = 'Admin Login | Acne Awareness Month - Sun Pharma'; }, []);
 
   useEffect(() => {
     if (isAdminAuthenticated()) {
@@ -35,12 +38,13 @@ const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-purple-800 to-purple-900">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-900 via-pink-800 to-pink-900">
       <div className="w-full max-w-md p-8">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-purple-900">Admin Login</h1>
-            <p className="text-gray-600 mt-2">Endometriosis Awareness Month</p>
+            <img src={sunPharmaLogo} alt="Sun Pharma" className="h-12 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-pink-900">Admin Login</h1>
+            <p className="text-gray-600 mt-2">Acne Awareness Month</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

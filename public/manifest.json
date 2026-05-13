@@ -1,11 +1,11 @@
 {
-  "name": "Alembic Endometriosis Awareness Month",
-  "short_name": "EAM",
-  "description": "Endometriosis Awareness Month Campaign",
+  "name": "Sun Pharma Acne Awareness Month",
+  "short_name": "Acne Awareness",
+  "description": "Sun Pharma Acne Awareness Month 2026 - Take the pledge for acne awareness",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#663399",
+  "theme_color": "#E91E63",
   "icons": [
     {
       "src": "/icon.png",

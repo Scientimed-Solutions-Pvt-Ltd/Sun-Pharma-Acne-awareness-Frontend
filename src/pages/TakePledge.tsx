@@ -57,6 +57,8 @@ const TakePledge: React.FC = () => {
   const [_error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(true);
   const [showSkipButton, setShowSkipButton] = useState(false);
+
+  useEffect(() => { document.title = 'Take the Pledge | Acne Awareness Month'; }, []);
   
   const navigate = useNavigate();
   const recognitionRef = useRef<ISpeechRecognition | null>(null);

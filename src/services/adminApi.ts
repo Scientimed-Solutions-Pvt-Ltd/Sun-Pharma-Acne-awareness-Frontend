@@ -44,6 +44,13 @@ export interface Hq {
   updated_at?: string;
 }
 
+export interface State {
+  id: number;
+  name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface FieldTeam {
   id: number;
   name: string;
@@ -1187,4 +1194,90 @@ export const exportTodaysPledges = async (filters?: PledgeFilters): Promise<Blob
   }
 
   return response.blob();
+};
+
+// State APIs
+export const getStates = async (params?: { page?: number; search?: string; per_page?: number }): Promise<PaginatedResponse<State>> => {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set('page', params.page.toString());
+  if (params?.search) queryParams.set('search', params.search);
+  if (params?.per_page) queryParams.set('per_page', params.per_page.toString());
+
+  const response = await fetch(`${API_BASE_URL}/admin/states?${queryParams}`, {
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch states');
+  }
+
+  return response.json();
+};
+
+export const getAllStates = async (): Promise<{ success: boolean; data: State[] }> => {
+  const response = await fetch(`${API_BASE_URL}/admin/states/all`, {
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch all states');
+  }
+
+  return response.json();
+};
+
+export const getState = async (id: number): Promise<SingleResponse<State>> => {
+  const response = await fetch(`${API_BASE_URL}/admin/states/${id}`, {
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch state');
+  }
+
+  return response.json();
+};
+
+export const createState = async (data: { name: string }): Promise<SingleResponse<State>> => {
+  const response = await fetch(`${API_BASE_URL}/admin/states`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create state');
+  }
+
+  return response.json();
+};
+
+export const updateState = async (id: number, data: { name: string }): Promise<SingleResponse<State>> => {
+  const response = await fetch(`${API_BASE_URL}/admin/states/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update state');
+  }
+
+  return response.json();
+};
+
+export const deleteState = async (id: number): Promise<{ success: boolean }> => {
+  const response = await fetch(`${API_BASE_URL}/admin/states/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete state');
+  }
+
+  return response.json();
 };

@@ -52,9 +52,8 @@ const AdminLayout: React.FC = () => {
         </svg>
       ),
       children: [
-        { name: 'Zones', path: '/admin/masters/zones' },
-        { name: 'Regions', path: '/admin/masters/regions' },
         { name: 'HQs', path: '/admin/masters/hqs' },
+        { name: 'States', path: '/admin/masters/states' },
       ],
     },
     {
