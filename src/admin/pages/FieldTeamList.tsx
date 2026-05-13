@@ -6,11 +6,10 @@ import {
   deleteFieldTeam,
   exportFieldTeams,
   importFieldTeams,
-  getAllZones,
-  getAllRegions,
+  getAllStates,
   getAllHqs,
 } from '../../services/adminApi';
-import type { FieldTeam, Zone, Region, Hq } from '../../services/adminApi';
+import type { FieldTeam, State, Hq } from '../../services/adminApi';
 
 const FieldTeamList: React.FC = () => {
   const navigate = useNavigate();
@@ -24,14 +23,12 @@ const FieldTeamList: React.FC = () => {
   });
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({
-    zone_id: 0,
-    region_id: 0,
+    state_id: 0,
     hq_id: 0,
   });
 
   // Filter options
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [states, setStates] = useState<State[]>([]);
   const [hqs, setHqs] = useState<Hq[]>([]);
 
   const fetchData = useCallback(async (page = 1) => {
@@ -40,8 +37,7 @@ const FieldTeamList: React.FC = () => {
       const response = await getFieldTeams({
         page,
         search,
-        zone_id: filters.zone_id || undefined,
-        region_id: filters.region_id || undefined,
+        state_id: filters.state_id || undefined,
         hq_id: filters.hq_id || undefined,
       });
       if (response.success) {
@@ -67,8 +63,8 @@ const FieldTeamList: React.FC = () => {
   useEffect(() => {
     const loadFilterOptions = async () => {
       try {
-        const [zonesRes] = await Promise.all([getAllZones()]);
-        if (zonesRes.success) setZones(zonesRes.data);
+        const statesRes = await getAllStates();
+        if (statesRes.success) setStates(statesRes.data);
       } catch (error) {
         console.error('Failed to load filter options:', error);
       }
@@ -77,26 +73,15 @@ const FieldTeamList: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (filters.zone_id) {
-      getAllRegions(filters.zone_id).then((res) => {
-        if (res.success) setRegions(res.data);
-      });
-    } else {
-      setRegions([]);
-      setFilters((prev) => ({ ...prev, region_id: 0, hq_id: 0 }));
-    }
-  }, [filters.zone_id]);
-
-  useEffect(() => {
-    if (filters.region_id) {
-      getAllHqs(filters.region_id).then((res) => {
+    if (filters.state_id) {
+      getAllHqs(filters.state_id).then((res) => {
         if (res.success) setHqs(res.data);
       });
     } else {
       setHqs([]);
       setFilters((prev) => ({ ...prev, hq_id: 0 }));
     }
-  }, [filters.region_id]);
+  }, [filters.state_id]);
 
   const handleDelete = async (item: FieldTeam) => {
     if (!window.confirm(`Are you sure you want to delete ${item.name}?`)) return;
@@ -139,19 +124,14 @@ const FieldTeamList: React.FC = () => {
     { key: 'email', title: 'Email' },
     { key: 'designation', title: 'Designation' },
     {
-      key: 'zone',
-      title: 'Zone',
-      render: (item: FieldTeam) => item.zone?.name || '-',
-    },
-    {
-      key: 'region',
-      title: 'Region',
-      render: (item: FieldTeam) => item.region?.name || '-',
+      key: 'state',
+      title: 'State',
+      render: (item: FieldTeam) => item.state_master?.name || '-',
     },
     {
       key: 'hq',
       title: 'HQ',
-      render: (item: FieldTeam) => item.hq?.name || '-',
+      render: (item: FieldTeam) => item.hq_master?.name || '-',
     },
     {
       key: 'doctors_count',
@@ -167,27 +147,14 @@ const FieldTeamList: React.FC = () => {
   const filterComponent = (
     <div className="flex flex-wrap gap-4">
       <select
-        value={filters.zone_id}
-        onChange={(e) => setFilters({ ...filters, zone_id: Number(e.target.value), region_id: 0, hq_id: 0 })}
+        value={filters.state_id}
+        onChange={(e) => setFilters({ ...filters, state_id: Number(e.target.value), hq_id: 0 })}
         className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
       >
-        <option value={0}>All Zones</option>
-        {zones.map((zone) => (
-          <option key={zone.id} value={zone.id}>
-            {zone.name}
-          </option>
-        ))}
-      </select>
-      <select
-        value={filters.region_id}
-        onChange={(e) => setFilters({ ...filters, region_id: Number(e.target.value), hq_id: 0 })}
-        className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
-        disabled={!filters.zone_id}
-      >
-        <option value={0}>All Regions</option>
-        {regions.map((region) => (
-          <option key={region.id} value={region.id}>
-            {region.name}
+        <option value={0}>All States</option>
+        {states.map((state) => (
+          <option key={state.id} value={state.id}>
+            {state.name}
           </option>
         ))}
       </select>
@@ -195,7 +162,7 @@ const FieldTeamList: React.FC = () => {
         value={filters.hq_id}
         onChange={(e) => setFilters({ ...filters, hq_id: Number(e.target.value) })}
         className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
-        disabled={!filters.region_id}
+        disabled={!filters.state_id}
       >
         <option value={0}>All HQs</option>
         {hqs.map((hq) => (

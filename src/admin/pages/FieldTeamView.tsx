@@ -101,16 +101,12 @@ const FieldTeamView: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
           <div className="space-y-3">
             <div>
-              <label className="text-sm text-gray-500">Zone</label>
-              <p className="text-gray-800 font-medium">{fieldTeam.zone?.name || '-'}</p>
-            </div>
-            <div>
-              <label className="text-sm text-gray-500">Region</label>
-              <p className="text-gray-800 font-medium">{fieldTeam.region?.name || '-'}</p>
+              <label className="text-sm text-gray-500">State</label>
+              <p className="text-gray-800 font-medium">{fieldTeam.state_master?.name || '-'}</p>
             </div>
             <div>
               <label className="text-sm text-gray-500">HQ</label>
-              <p className="text-gray-800 font-medium">{fieldTeam.hq?.name || '-'}</p>
+              <p className="text-gray-800 font-medium">{fieldTeam.hq_master?.name || '-'}</p>
             </div>
           </div>
         </div>

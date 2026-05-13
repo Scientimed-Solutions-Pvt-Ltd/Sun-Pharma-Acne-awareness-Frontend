@@ -35,10 +35,8 @@ export interface Region {
 export interface Hq {
   id: number;
   name: string;
-  zone_id: number;
-  region_id: number;
-  zone?: Zone;
-  region?: Region;
+  state_id: number;
+  state?: State;
   field_teams_count?: number;
   created_at?: string;
   updated_at?: string;
@@ -58,12 +56,10 @@ export interface FieldTeam {
   mobile: string;
   email: string;
   designation: string;
-  zone_id: number;
-  region_id: number;
+  state_id: number;
   hq_id: number;
-  zone?: Zone;
-  region?: Region;
-  hq?: Hq;
+  state_master?: State;
+  hq_master?: Hq;
   doctors_count?: number;
   doctors?: Doctor[];
   created_at?: string;
@@ -82,13 +78,7 @@ export interface Doctor {
   email: string;
   photo?: string;
   field_team_id: number;
-  zone_id?: number;
-  region_id?: number;
-  hq_id?: number;
   field_team?: FieldTeam;
-  zone?: Zone;
-  region?: Region;
-  hq?: Hq;
   terms_accepted: boolean;
   pledge_taken: boolean;
   pledge_taken_at?: string;
@@ -118,8 +108,7 @@ export interface DashboardStats {
     total_field_teams: number;
     doctors_pledged: number;
     doctors_pending: number;
-    total_zones: number;
-    total_regions: number;
+    total_states: number;
     total_hqs: number;
   };
   recent_pledges: Doctor[];
@@ -433,12 +422,11 @@ export const importRegions = async (file: File): Promise<{ success: boolean; mes
 };
 
 // HQ APIs
-export const getHqs = async (params?: { page?: number; search?: string; zone_id?: number; region_id?: number; per_page?: number }): Promise<PaginatedResponse<Hq>> => {
+export const getHqs = async (params?: { page?: number; search?: string; state_id?: number; per_page?: number }): Promise<PaginatedResponse<Hq>> => {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set('page', params.page.toString());
   if (params?.search) queryParams.set('search', params.search);
-  if (params?.zone_id) queryParams.set('zone_id', params.zone_id.toString());
-  if (params?.region_id) queryParams.set('region_id', params.region_id.toString());
+  if (params?.state_id) queryParams.set('state_id', params.state_id.toString());
   if (params?.per_page) queryParams.set('per_page', params.per_page.toString());
 
   const response = await fetch(`${API_BASE_URL}/admin/hqs?${queryParams}`, {
@@ -452,9 +440,9 @@ export const getHqs = async (params?: { page?: number; search?: string; zone_id?
   return response.json();
 };
 
-export const getAllHqs = async (region_id?: number): Promise<{ success: boolean; data: Hq[] }> => {
+export const getAllHqs = async (state_id?: number): Promise<{ success: boolean; data: Hq[] }> => {
   const queryParams = new URLSearchParams();
-  if (region_id) queryParams.set('region_id', region_id.toString());
+  if (state_id) queryParams.set('state_id', state_id.toString());
 
   const response = await fetch(`${API_BASE_URL}/admin/hqs/all?${queryParams}`, {
     headers: getHeaders(),
@@ -479,7 +467,7 @@ export const getHq = async (id: number): Promise<SingleResponse<Hq>> => {
   return response.json();
 };
 
-export const createHq = async (data: { name: string; region_id: number }): Promise<SingleResponse<Hq>> => {
+export const createHq = async (data: { name: string; state_id: number }): Promise<SingleResponse<Hq>> => {
   const response = await fetch(`${API_BASE_URL}/admin/hqs`, {
     method: 'POST',
     headers: getHeaders(),
@@ -494,7 +482,7 @@ export const createHq = async (data: { name: string; region_id: number }): Promi
   return response.json();
 };
 
-export const updateHq = async (id: number, data: { name: string; region_id: number }): Promise<SingleResponse<Hq>> => {
+export const updateHq = async (id: number, data: { name: string; state_id: number }): Promise<SingleResponse<Hq>> => {
   const response = await fetch(`${API_BASE_URL}/admin/hqs/${id}`, {
     method: 'PUT',
     headers: getHeaders(),
@@ -557,12 +545,11 @@ export const importHqs = async (file: File): Promise<{ success: boolean; message
 };
 
 // Field Team APIs
-export const getFieldTeams = async (params?: { page?: number; search?: string; zone_id?: number; region_id?: number; hq_id?: number; per_page?: number }): Promise<PaginatedResponse<FieldTeam>> => {
+export const getFieldTeams = async (params?: { page?: number; search?: string; state_id?: number; hq_id?: number; per_page?: number }): Promise<PaginatedResponse<FieldTeam>> => {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set('page', params.page.toString());
   if (params?.search) queryParams.set('search', params.search);
-  if (params?.zone_id) queryParams.set('zone_id', params.zone_id.toString());
-  if (params?.region_id) queryParams.set('region_id', params.region_id.toString());
+  if (params?.state_id) queryParams.set('state_id', params.state_id.toString());
   if (params?.hq_id) queryParams.set('hq_id', params.hq_id.toString());
   if (params?.per_page) queryParams.set('per_page', params.per_page.toString());
 
@@ -595,8 +582,7 @@ export const createFieldTeam = async (data: {
   mobile: string;
   email: string;
   designation: string;
-  zone_id: number;
-  region_id: number;
+  state_id: number;
   hq_id: number;
 }): Promise<SingleResponse<FieldTeam>> => {
   const response = await fetch(`${API_BASE_URL}/admin/field-teams`, {
@@ -619,8 +605,7 @@ export const updateFieldTeam = async (id: number, data: {
   mobile: string;
   email: string;
   designation: string;
-  zone_id: number;
-  region_id: number;
+  state_id: number;
   hq_id: number;
 }): Promise<SingleResponse<FieldTeam>> => {
   const response = await fetch(`${API_BASE_URL}/admin/field-teams/${id}`, {
@@ -701,8 +686,7 @@ export const getDoctors = async (params?: {
   page?: number; 
   search?: string; 
   field_team_id?: number; 
-  zone_id?: number;
-  region_id?: number;
+  state_id?: number;
   hq_id?: number;
   pledge_taken?: boolean; 
   per_page?: number 
@@ -711,8 +695,7 @@ export const getDoctors = async (params?: {
   if (params?.page) queryParams.set('page', params.page.toString());
   if (params?.search) queryParams.set('search', params.search);
   if (params?.field_team_id) queryParams.set('field_team_id', params.field_team_id.toString());
-  if (params?.zone_id) queryParams.set('zone_id', params.zone_id.toString());
-  if (params?.region_id) queryParams.set('region_id', params.region_id.toString());
+  if (params?.state_id) queryParams.set('state_id', params.state_id.toString());
   if (params?.hq_id) queryParams.set('hq_id', params.hq_id.toString());
   if (params?.pledge_taken !== undefined) queryParams.set('pledge_taken', params.pledge_taken.toString());
   if (params?.per_page) queryParams.set('per_page', params.per_page.toString());

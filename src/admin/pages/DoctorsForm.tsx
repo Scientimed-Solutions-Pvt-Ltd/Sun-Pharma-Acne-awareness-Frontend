@@ -4,12 +4,11 @@ import {
   createDoctor,
   updateDoctor,
   getDoctor,
-  getAllZones,
-  getAllRegions,
+  getAllStates,
   getAllHqs,
   getFieldTeamsByHq,
 } from '../../services/adminApi';
-import type { Zone, Region, Hq, FieldTeam } from '../../services/adminApi';
+import type { State, Hq, FieldTeam } from '../../services/adminApi';
 
 interface FormData {
   dr_name: string;
@@ -18,8 +17,7 @@ interface FormData {
   mobile: string;
   email: string;
   city: string;
-  zone_id: number;
-  region_id: number;
+  state_id: number;
   hq_id: number;
   field_team_id: number;
 }
@@ -36,8 +34,7 @@ const DoctorsForm: React.FC = () => {
     mobile: '',
     email: '',
     city: '',
-    zone_id: 0,
-    region_id: 0,
+    state_id: 0,
     hq_id: 0,
     field_team_id: 0,
   });
@@ -47,18 +44,17 @@ const DoctorsForm: React.FC = () => {
   const [isLoadingData, setIsLoadingData] = useState(isEdit);
 
   // Options
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [states, setStates] = useState<State[]>([]);
   const [hqs, setHqs] = useState<Hq[]>([]);
   const [fieldTeams, setFieldTeams] = useState<FieldTeam[]>([]);
 
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const zonesRes = await getAllZones();
-        if (zonesRes.success) setZones(zonesRes.data);
+        const statesRes = await getAllStates();
+        if (statesRes.success) setStates(statesRes.data);
       } catch (error) {
-        console.error('Failed to load zones:', error);
+        console.error('Failed to load states:', error);
       }
     };
     loadOptions();
@@ -71,10 +67,8 @@ const DoctorsForm: React.FC = () => {
           const response = await getDoctor(parseInt(id));
           if (response.success) {
             const doc = response.data;
-            // Get zone/region/hq from field_team if available
-            const zoneId = doc.zone_id || doc.field_team?.zone_id || 0;
-            const regionId = doc.region_id || doc.field_team?.region_id || 0;
-            const hqId = doc.hq_id || doc.field_team?.hq_id || 0;
+            const stateId = doc.field_team?.state_id || 0;
+            const hqId = doc.field_team?.hq_id || 0;
             
             setFormData({
               dr_name: doc.dr_name,
@@ -83,19 +77,14 @@ const DoctorsForm: React.FC = () => {
               mobile: doc.mobile || '',
               email: doc.email || '',
               city: doc.city || '',
-              zone_id: zoneId,
-              region_id: regionId,
+              state_id: stateId,
               hq_id: hqId,
               field_team_id: doc.field_team_id || 0,
             });
 
             // Load dependent dropdowns
-            if (zoneId) {
-              const regionsRes = await getAllRegions(zoneId);
-              if (regionsRes.success) setRegions(regionsRes.data);
-            }
-            if (regionId) {
-              const hqsRes = await getAllHqs(regionId);
+            if (stateId) {
+              const hqsRes = await getAllHqs(stateId);
               if (hqsRes.success) setHqs(hqsRes.data);
             }
             if (hqId) {
@@ -115,24 +104,14 @@ const DoctorsForm: React.FC = () => {
   }, [id, isEdit, navigate]);
 
   useEffect(() => {
-    if (formData.zone_id && !isLoadingData) {
-      getAllRegions(formData.zone_id).then((res) => {
-        if (res.success) setRegions(res.data);
-      });
-    } else if (!isLoadingData) {
-      setRegions([]);
-    }
-  }, [formData.zone_id, isLoadingData]);
-
-  useEffect(() => {
-    if (formData.region_id && !isLoadingData) {
-      getAllHqs(formData.region_id).then((res) => {
+    if (formData.state_id && !isLoadingData) {
+      getAllHqs(formData.state_id).then((res) => {
         if (res.success) setHqs(res.data);
       });
     } else if (!isLoadingData) {
       setHqs([]);
     }
-  }, [formData.region_id, isLoadingData]);
+  }, [formData.state_id, isLoadingData]);
 
   useEffect(() => {
     if (formData.hq_id && !isLoadingData) {
@@ -150,11 +129,7 @@ const DoctorsForm: React.FC = () => {
       const newData = { ...prev, [name]: value };
 
       // Reset dependent fields
-      if (name === 'zone_id') {
-        newData.region_id = 0;
-        newData.hq_id = 0;
-        newData.field_team_id = 0;
-      } else if (name === 'region_id') {
+      if (name === 'state_id') {
         newData.hq_id = 0;
         newData.field_team_id = 0;
       } else if (name === 'hq_id') {
@@ -191,11 +166,8 @@ const DoctorsForm: React.FC = () => {
     if (!formData.city.trim()) {
       newErrors.city = 'City is required';
     }
-    if (!formData.zone_id) {
-      newErrors.zone_id = 'Zone is required';
-    }
-    if (!formData.region_id) {
-      newErrors.region_id = 'Region is required';
+    if (!formData.state_id) {
+      newErrors.state_id = 'State is required';
     }
     if (!formData.hq_id) {
       newErrors.hq_id = 'HQ is required';
@@ -373,51 +345,27 @@ const DoctorsForm: React.FC = () => {
               {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
             </div>
 
-            {/* Zone */}
+            {/* State */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Zone <span className="text-red-500">*</span>
+                State <span className="text-red-500">*</span>
               </label>
               <select
-                name="zone_id"
-                value={formData.zone_id}
+                name="state_id"
+                value={formData.state_id}
                 onChange={handleChange}
                 className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.zone_id ? 'border-red-500' : 'border-gray-300'
+                  errors.state_id ? 'border-red-500' : 'border-gray-300'
                 }`}
               >
-                <option value={0}>Select Zone</option>
-                {zones.map((zone) => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.name}
+                <option value={0}>Select State</option>
+                {states.map((state) => (
+                  <option key={state.id} value={state.id}>
+                    {state.name}
                   </option>
                 ))}
               </select>
-              {errors.zone_id && <p className="text-red-500 text-sm mt-1">{errors.zone_id}</p>}
-            </div>
-
-            {/* Region */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Region <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="region_id"
-                value={formData.region_id}
-                onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.region_id ? 'border-red-500' : 'border-gray-300'
-                }`}
-                disabled={!formData.zone_id}
-              >
-                <option value={0}>Select Region</option>
-                {regions.map((region) => (
-                  <option key={region.id} value={region.id}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
-              {errors.region_id && <p className="text-red-500 text-sm mt-1">{errors.region_id}</p>}
+              {errors.state_id && <p className="text-red-500 text-sm mt-1">{errors.state_id}</p>}
             </div>
 
             {/* HQ */}
@@ -432,7 +380,7 @@ const DoctorsForm: React.FC = () => {
                 className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                   errors.hq_id ? 'border-red-500' : 'border-gray-300'
                 }`}
-                disabled={!formData.region_id}
+                disabled={!formData.state_id}
               >
                 <option value={0}>Select HQ</option>
                 {hqs.map((hq) => (

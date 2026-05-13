@@ -176,16 +176,12 @@ const DoctorsView: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
           <div className="space-y-3">
             <div>
-              <label className="text-sm text-gray-500">Zone</label>
-              <p className="text-gray-800 font-medium">{doctor.zone?.name || doctor.field_team?.zone?.name || '-'}</p>
-            </div>
-            <div>
-              <label className="text-sm text-gray-500">Region</label>
-              <p className="text-gray-800 font-medium">{doctor.region?.name || doctor.field_team?.region?.name || '-'}</p>
+              <label className="text-sm text-gray-500">State</label>
+              <p className="text-gray-800 font-medium">{doctor.field_team?.state_master?.name || '-'}</p>
             </div>
             <div>
               <label className="text-sm text-gray-500">HQ</label>
-              <p className="text-gray-800 font-medium">{doctor.hq?.name || doctor.field_team?.hq?.name || '-'}</p>
+              <p className="text-gray-800 font-medium">{doctor.field_team?.hq_master?.name || '-'}</p>
             </div>
           </div>
         </div>

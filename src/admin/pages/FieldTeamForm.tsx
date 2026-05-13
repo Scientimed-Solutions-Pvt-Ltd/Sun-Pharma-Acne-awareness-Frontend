@@ -4,11 +4,10 @@ import {
   createFieldTeam,
   updateFieldTeam,
   getFieldTeam,
-  getAllZones,
-  getAllRegions,
+  getAllStates,
   getAllHqs,
 } from '../../services/adminApi';
-import type { Zone, Region, Hq } from '../../services/adminApi';
+import type { State, Hq } from '../../services/adminApi';
 
 interface FormData {
   name: string;
@@ -16,8 +15,7 @@ interface FormData {
   mobile: string;
   email: string;
   designation: string;
-  zone_id: number;
-  region_id: number;
+  state_id: number;
   hq_id: number;
 }
 
@@ -32,8 +30,7 @@ const FieldTeamForm: React.FC = () => {
     mobile: '',
     email: '',
     designation: '',
-    zone_id: 0,
-    region_id: 0,
+    state_id: 0,
     hq_id: 0,
   });
 
@@ -42,17 +39,16 @@ const FieldTeamForm: React.FC = () => {
   const [isLoadingData, setIsLoadingData] = useState(isEdit);
 
   // Options
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [states, setStates] = useState<State[]>([]);
   const [hqs, setHqs] = useState<Hq[]>([]);
 
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const zonesRes = await getAllZones();
-        if (zonesRes.success) setZones(zonesRes.data);
+        const statesRes = await getAllStates();
+        if (statesRes.success) setStates(statesRes.data);
       } catch (error) {
-        console.error('Failed to load zones:', error);
+        console.error('Failed to load states:', error);
       }
     };
     loadOptions();
@@ -71,18 +67,13 @@ const FieldTeamForm: React.FC = () => {
               mobile: ft.mobile || '',
               email: ft.email || '',
               designation: ft.designation || '',
-              zone_id: ft.zone_id,
-              region_id: ft.region_id,
+              state_id: ft.state_id,
               hq_id: ft.hq_id,
             });
 
-            // Load regions and hqs for the existing data
-            if (ft.zone_id) {
-              const regionsRes = await getAllRegions(ft.zone_id);
-              if (regionsRes.success) setRegions(regionsRes.data);
-            }
-            if (ft.region_id) {
-              const hqsRes = await getAllHqs(ft.region_id);
+            // Load hqs for the existing state
+            if (ft.state_id) {
+              const hqsRes = await getAllHqs(ft.state_id);
               if (hqsRes.success) setHqs(hqsRes.data);
             }
           }
@@ -98,24 +89,14 @@ const FieldTeamForm: React.FC = () => {
   }, [id, isEdit, navigate]);
 
   useEffect(() => {
-    if (formData.zone_id && !isLoadingData) {
-      getAllRegions(formData.zone_id).then((res) => {
-        if (res.success) setRegions(res.data);
-      });
-    } else if (!isLoadingData) {
-      setRegions([]);
-    }
-  }, [formData.zone_id, isLoadingData]);
-
-  useEffect(() => {
-    if (formData.region_id && !isLoadingData) {
-      getAllHqs(formData.region_id).then((res) => {
+    if (formData.state_id && !isLoadingData) {
+      getAllHqs(formData.state_id).then((res) => {
         if (res.success) setHqs(res.data);
       });
     } else if (!isLoadingData) {
       setHqs([]);
     }
-  }, [formData.region_id, isLoadingData]);
+  }, [formData.state_id, isLoadingData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -123,10 +104,7 @@ const FieldTeamForm: React.FC = () => {
       const newData = { ...prev, [name]: value };
 
       // Reset dependent fields
-      if (name === 'zone_id') {
-        newData.region_id = 0;
-        newData.hq_id = 0;
-      } else if (name === 'region_id') {
+      if (name === 'state_id') {
         newData.hq_id = 0;
       }
 
@@ -157,11 +135,8 @@ const FieldTeamForm: React.FC = () => {
     if (!formData.designation.trim()) {
       newErrors.designation = 'Designation is required';
     }
-    if (!formData.zone_id) {
-      newErrors.zone_id = 'Zone is required';
-    }
-    if (!formData.region_id) {
-      newErrors.region_id = 'Region is required';
+    if (!formData.state_id) {
+      newErrors.state_id = 'State is required';
     }
     if (!formData.hq_id) {
       newErrors.hq_id = 'HQ is required';
@@ -180,8 +155,7 @@ const FieldTeamForm: React.FC = () => {
       setIsLoading(true);
       const payload = {
         ...formData,
-        zone_id: Number(formData.zone_id),
-        region_id: Number(formData.region_id),
+        state_id: Number(formData.state_id),
         hq_id: Number(formData.hq_id),
       };
 
@@ -313,51 +287,27 @@ const FieldTeamForm: React.FC = () => {
               {errors.designation && <p className="text-red-500 text-sm mt-1">{errors.designation}</p>}
             </div>
 
-            {/* Zone */}
+            {/* State */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Zone <span className="text-red-500">*</span>
+                State <span className="text-red-500">*</span>
               </label>
               <select
-                name="zone_id"
-                value={formData.zone_id}
+                name="state_id"
+                value={formData.state_id}
                 onChange={handleChange}
                 className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.zone_id ? 'border-red-500' : 'border-gray-300'
+                  errors.state_id ? 'border-red-500' : 'border-gray-300'
                 }`}
               >
-                <option value={0}>Select Zone</option>
-                {zones.map((zone) => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.name}
+                <option value={0}>Select State</option>
+                {states.map((state) => (
+                  <option key={state.id} value={state.id}>
+                    {state.name}
                   </option>
                 ))}
               </select>
-              {errors.zone_id && <p className="text-red-500 text-sm mt-1">{errors.zone_id}</p>}
-            </div>
-
-            {/* Region */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Region <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="region_id"
-                value={formData.region_id}
-                onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.region_id ? 'border-red-500' : 'border-gray-300'
-                }`}
-                disabled={!formData.zone_id}
-              >
-                <option value={0}>Select Region</option>
-                {regions.map((region) => (
-                  <option key={region.id} value={region.id}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
-              {errors.region_id && <p className="text-red-500 text-sm mt-1">{errors.region_id}</p>}
+              {errors.state_id && <p className="text-red-500 text-sm mt-1">{errors.state_id}</p>}
             </div>
 
             {/* HQ */}
@@ -372,7 +322,7 @@ const FieldTeamForm: React.FC = () => {
                 className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                   errors.hq_id ? 'border-red-500' : 'border-gray-300'
                 }`}
-                disabled={!formData.region_id}
+                disabled={!formData.state_id}
               >
                 <option value={0}>Select HQ</option>
                 {hqs.map((hq) => (

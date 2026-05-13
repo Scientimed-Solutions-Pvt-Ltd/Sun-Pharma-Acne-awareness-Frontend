@@ -4,10 +4,9 @@ import DataTable from '../components/DataTable';
 import {
   getHqs,
   deleteHq,
-  getAllZones,
-  getAllRegions,
+  getAllStates,
 } from '../../services/adminApi';
-import type { Hq, Zone, Region } from '../../services/adminApi';
+import type { Hq, State } from '../../services/adminApi';
 
 const HqsList: React.FC = () => {
   const navigate = useNavigate();
@@ -21,11 +20,9 @@ const HqsList: React.FC = () => {
   });
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({
-    zone_id: 0,
-    region_id: 0,
+    state_id: 0,
   });
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [states, setStates] = useState<State[]>([]);
 
   const fetchData = useCallback(
     async (page = 1) => {
@@ -34,8 +31,7 @@ const HqsList: React.FC = () => {
         const response = await getHqs({
           page,
           search,
-          zone_id: filters.zone_id || undefined,
-          region_id: filters.region_id || undefined,
+          state_id: filters.state_id || undefined,
         });
         if (response.success) {
           setData(response.data.data);
@@ -60,27 +56,16 @@ const HqsList: React.FC = () => {
   }, [fetchData]);
 
   useEffect(() => {
-    const loadZones = async () => {
+    const loadStates = async () => {
       try {
-        const response = await getAllZones();
-        if (response.success) setZones(response.data);
+        const response = await getAllStates();
+        if (response.success) setStates(response.data);
       } catch (error) {
-        console.error('Failed to load zones:', error);
+        console.error('Failed to load states:', error);
       }
     };
-    loadZones();
+    loadStates();
   }, []);
-
-  useEffect(() => {
-    if (filters.zone_id) {
-      getAllRegions(filters.zone_id).then((res) => {
-        if (res.success) setRegions(res.data);
-      });
-    } else {
-      setRegions([]);
-      setFilters((prev) => ({ ...prev, region_id: 0 }));
-    }
-  }, [filters.zone_id]);
 
   const handleDelete = async (item: Hq) => {
     if (!window.confirm(`Are you sure you want to delete ${item.name}?`)) return;
@@ -95,14 +80,9 @@ const HqsList: React.FC = () => {
   const columns = [
     { key: 'name', title: 'HQ Name' },
     {
-      key: 'zone',
-      title: 'Zone',
-      render: (item: Hq) => item.zone?.name || '-',
-    },
-    {
-      key: 'region',
-      title: 'Region',
-      render: (item: Hq) => item.region?.name || '-',
+      key: 'state',
+      title: 'State',
+      render: (item: Hq) => item.state?.name || '-',
     },
     {
       key: 'field_teams_count',
@@ -130,31 +110,16 @@ const HqsList: React.FC = () => {
   const filterComponent = (
     <div className="flex flex-wrap gap-4">
       <select
-        value={filters.zone_id}
+        value={filters.state_id}
         onChange={(e) =>
-          setFilters({ zone_id: Number(e.target.value), region_id: 0 })
+          setFilters({ state_id: Number(e.target.value) })
         }
         className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
       >
-        <option value={0}>All Zones</option>
-        {zones.map((zone) => (
-          <option key={zone.id} value={zone.id}>
-            {zone.name}
-          </option>
-        ))}
-      </select>
-      <select
-        value={filters.region_id}
-        onChange={(e) =>
-          setFilters((prev) => ({ ...prev, region_id: Number(e.target.value) }))
-        }
-        className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500"
-        disabled={!filters.zone_id}
-      >
-        <option value={0}>All Regions</option>
-        {regions.map((region) => (
-          <option key={region.id} value={region.id}>
-            {region.name}
+        <option value={0}>All States</option>
+        {states.map((state) => (
+          <option key={state.id} value={state.id}>
+            {state.name}
           </option>
         ))}
       </select>

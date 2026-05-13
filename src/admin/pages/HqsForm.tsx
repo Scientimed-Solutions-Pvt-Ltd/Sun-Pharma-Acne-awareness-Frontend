@@ -4,10 +4,9 @@ import {
   createHq,
   updateHq,
   getHq,
-  getAllZones,
-  getAllRegions,
+  getAllStates,
 } from '../../services/adminApi';
-import type { Zone, Region } from '../../services/adminApi';
+import type { State } from '../../services/adminApi';
 
 const HqsForm: React.FC = () => {
   const navigate = useNavigate();
@@ -15,24 +14,22 @@ const HqsForm: React.FC = () => {
   const isEdit = Boolean(id);
 
   const [name, setName] = useState('');
-  const [zoneId, setZoneId] = useState(0);
-  const [regionId, setRegionId] = useState(0);
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [stateId, setStateId] = useState(0);
+  const [states, setStates] = useState<State[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(isEdit);
 
   useEffect(() => {
-    const loadZones = async () => {
+    const loadStates = async () => {
       try {
-        const response = await getAllZones();
-        if (response.success) setZones(response.data);
+        const response = await getAllStates();
+        if (response.success) setStates(response.data);
       } catch (error) {
-        console.error('Failed to load zones:', error);
+        console.error('Failed to load states:', error);
       }
     };
-    loadZones();
+    loadStates();
   }, []);
 
   useEffect(() => {
@@ -42,14 +39,7 @@ const HqsForm: React.FC = () => {
           const response = await getHq(parseInt(id));
           if (response.success) {
             setName(response.data.name);
-            setZoneId(response.data.zone_id);
-            setRegionId(response.data.region_id);
-
-            // Load regions for the zone
-            if (response.data.zone_id) {
-              const regionsRes = await getAllRegions(response.data.zone_id);
-              if (regionsRes.success) setRegions(regionsRes.data);
-            }
+            setStateId(response.data.state_id);
           }
         } catch (error) {
           console.error('Failed to load HQ:', error);
@@ -62,21 +52,10 @@ const HqsForm: React.FC = () => {
     }
   }, [id, isEdit, navigate]);
 
-  useEffect(() => {
-    if (zoneId && !isLoadingData) {
-      getAllRegions(zoneId).then((res) => {
-        if (res.success) setRegions(res.data);
-      });
-    } else if (!isLoadingData) {
-      setRegions([]);
-    }
-  }, [zoneId, isLoadingData]);
-
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!name.trim()) newErrors.name = 'HQ name is required';
-    if (!zoneId) newErrors.zone_id = 'Zone is required';
-    if (!regionId) newErrors.region_id = 'Region is required';
+    if (!stateId) newErrors.state_id = 'State is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -88,9 +67,9 @@ const HqsForm: React.FC = () => {
     try {
       setIsLoading(true);
       if (isEdit && id) {
-        await updateHq(parseInt(id), { name, region_id: regionId });
+        await updateHq(parseInt(id), { name, state_id: stateId });
       } else {
-        await createHq({ name, region_id: regionId });
+        await createHq({ name, state_id: stateId });
       }
       navigate('/admin/masters/hqs');
     } catch (error) {
@@ -119,52 +98,26 @@ const HqsForm: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Zone <span className="text-red-500">*</span>
+              State <span className="text-red-500">*</span>
             </label>
             <select
-              value={zoneId}
+              value={stateId}
               onChange={(e) => {
-                setZoneId(Number(e.target.value));
-                setRegionId(0);
-                setErrors((prev) => ({ ...prev, zone_id: '' }));
+                setStateId(Number(e.target.value));
+                setErrors((prev) => ({ ...prev, state_id: '' }));
               }}
               className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.zone_id ? 'border-red-500' : 'border-gray-300'
+                errors.state_id ? 'border-red-500' : 'border-gray-300'
               }`}
             >
-              <option value={0}>Select Zone</option>
-              {zones.map((zone) => (
-                <option key={zone.id} value={zone.id}>
-                  {zone.name}
+              <option value={0}>Select State</option>
+              {states.map((state) => (
+                <option key={state.id} value={state.id}>
+                  {state.name}
                 </option>
               ))}
             </select>
-            {errors.zone_id && <p className="text-red-500 text-sm mt-1">{errors.zone_id}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Region <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={regionId}
-              onChange={(e) => {
-                setRegionId(Number(e.target.value));
-                setErrors((prev) => ({ ...prev, region_id: '' }));
-              }}
-              className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.region_id ? 'border-red-500' : 'border-gray-300'
-              }`}
-              disabled={!zoneId}
-            >
-              <option value={0}>Select Region</option>
-              {regions.map((region) => (
-                <option key={region.id} value={region.id}>
-                  {region.name}
-                </option>
-              ))}
-            </select>
-            {errors.region_id && <p className="text-red-500 text-sm mt-1">{errors.region_id}</p>}
+            {errors.state_id && <p className="text-red-500 text-sm mt-1">{errors.state_id}</p>}
           </div>
 
           <div>
