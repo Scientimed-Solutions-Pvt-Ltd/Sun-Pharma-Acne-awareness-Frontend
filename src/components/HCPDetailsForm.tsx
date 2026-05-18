@@ -125,13 +125,15 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
   // Auto-fill form when initialDoctor is provided (from HCPList navigation)
   useEffect(() => {
     if (initialDoctor) {
+      const storedPhoto = localStorage.getItem(`doctor_photo_${initialDoctor.id}`);
       setFormData({
         hcpname: initialDoctor.dr_name || '',
         mobile: initialDoctor.mobile || '',
         pCode: initialDoctor.p_code || '',
         city: initialDoctor.city || '',
-        photo: ''
+        photo: storedPhoto || ''
       });
+      if (storedPhoto) setPhotoPreview(storedPhoto);
       setExistingDoctorId(initialDoctor.id);
       setShowExistingDoctorMessage(true);
       
@@ -144,13 +146,15 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
 
   // Handle selecting an existing doctor from dropdown
   const handleSelectExistingDoctor = (doctor: typeof existingDoctors[0]) => {
+    const storedPhoto = localStorage.getItem(`doctor_photo_${doctor.id}`);
     setFormData({
       hcpname: doctor.dr_name,
       mobile: doctor.mobile || '',
       pCode: doctor.p_code || '',
       city: doctor.city || '',
-      photo: ''
+      photo: storedPhoto || ''
     });
+    if (storedPhoto) setPhotoPreview(storedPhoto);
     setExistingDoctorId(doctor.id);
     setShowDropdown(false);
     setShowExistingDoctorMessage(true);
