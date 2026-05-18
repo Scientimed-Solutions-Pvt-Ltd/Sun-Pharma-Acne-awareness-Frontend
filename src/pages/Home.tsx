@@ -99,16 +99,14 @@ const Home: React.FC = () => {
             </div>
           </div>
 
-          {/* Tablet (md–lg): girl's photo at bottom, no overlap with form */}
-          <div className="hidden md:block lg:hidden flex-1 min-h-0 mt-2 md:mt-4">
+          {/* Mobile & Tablet (below lg): girl's photo at bottom, no overlap with form */}
+          <div className="block lg:hidden flex-1 min-h-0 mt-2 md:mt-4">
             <img
               src={bgTablet}
               alt=""
               className="w-full h-full object-cover object-top"
             />
           </div>
-
-          {/* Mobile: no photo */}
 
           <footer className="absolute right-4 top-1/2 -translate-y-1/2 z-10 hidden lg:block">
             <p className="text-xs text-black text-right writing-vertical whitespace-nowrap" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>

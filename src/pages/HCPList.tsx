@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
 import bgDesktop from '../assets/images/bg01.png';
-import bgTablet from '../assets/images/bg01-md.png';
-import bgMobile from '../assets/images/bg01-sm.png';
 import { getUserData, getDoctorsByFieldTeam } from '../services/api';
 
 interface Doctor {
@@ -95,17 +93,7 @@ const HCPList: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Background Image - Mobile */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
-        style={{ backgroundImage: `url(${bgMobile})` }}
-      />
-      {/* Background Image - Tablet */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block lg:hidden"
-        style={{ backgroundImage: `url(${bgTablet})` }}
-      />
-      {/* Background Image - Desktop */}
+      {/* Background Image - Desktop only (hidden on mobile/tablet to avoid overlap with content) */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden lg:block"
         style={{ backgroundImage: `url(${bgDesktop})` }}
