@@ -62,7 +62,7 @@ const Carousel: React.FC = () => {
       />
       
       {/* Gradient Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 min-h-20 h-auto md:min-h-20 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
+      <div className="absolute top-0 left-0 right-0 min-h-20 h-auto bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
       
       {/* Content */}
       <div className="relative z-10 flex flex-col min-h-screen">

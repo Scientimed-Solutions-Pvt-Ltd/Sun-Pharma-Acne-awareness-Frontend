@@ -6,7 +6,6 @@ import SideMenu from '../components/SideMenu';
 import aamLogo from '../assets/images/aam-logo.png';
 import bgDesktop from '../assets/images/bg01.png';
 import bgTablet from '../assets/images/bg01-md.png';
-import bgMobile from '../assets/images/bg01-sm.png';
 import { getUserData, addDoctor, updateDoctor, saveDoctorData, getDoctorsByFieldTeam } from '../services/api';
 
 const HCPDetails: React.FC = () => {
@@ -129,51 +128,56 @@ const HCPDetails: React.FC = () => {
   }, [isMenuOpen]);
 
   return (
-    <div className="min-h-screen flex flex-col relative">
-      {/* Background Image - Mobile */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
-        style={{ backgroundImage: `url(${bgMobile})` }}
-      />
-      {/* Background Image - Tablet */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block lg:hidden"
-        style={{ backgroundImage: `url(${bgTablet})` }}
-      />
-      {/* Background Image - Desktop */}
+    <div className="h-screen overflow-hidden flex flex-col relative bg-white lg:bg-transparent">
+      {/* Background Image - Desktop only (lg+) */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden lg:block"
         style={{ backgroundImage: `url(${bgDesktop})`, backgroundPosition: 'right center' }}
       />
       {/* Gradient Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 min-h-20 h-auto md:min-h-20 bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
+      <div className="absolute top-0 left-0 right-0 min-h-20 h-auto bg-gradient-to-r from-[#A82682] to-[#E3175F]" />
       {/* Content */}
-      <div className="relative z-10 flex flex-col min-h-screen">
+      <div className="relative z-10 flex flex-col h-full">
         <Header onMenuClick={toggleMenu} userName={userName} showMenu={true} />
         <SideMenu isOpen={isMenuOpen} onClose={closeMenu} userName={userName} />
         
-        <main className="flex-1 flex flex-col justify-center relative overflow-hidden">
-          <div className="px-4 md:px-8 lg:px-16 py-2 lg:py-4">
-            <div className="flex items-center justify-center lg:justify-start">
-              <div className="w-full lg:w-1/2">
-                <div className="p-4 md:p-6 lg:p-8 max-w-md mx-auto lg:mx-0">
-                  <img src={aamLogo} alt="AAM Logo" className="mb-6 aam-logo mx-auto block" />
-                  <div className="mt-2">
-                    <HCPDetailsForm 
-                      onBack={handleBack} 
-                      onSubmit={handleSubmit}
-                      isLoading={isLoading}
-                      error={error}
-                      existingDoctors={existingDoctors}
-                      initialDoctor={initialDoctor}
-                    />
+        <main className="flex-1 flex flex-col overflow-hidden">
+
+          {/* Form area — top-aligned on mobile/tablet, centered on desktop */}
+          <div className="lg:flex-1 lg:flex lg:flex-col lg:justify-center">
+            <div className="px-4 md:px-8 lg:px-16 py-3 md:py-5 lg:py-4">
+              <div className="flex items-center justify-center lg:justify-start">
+                <div className="w-full lg:w-1/2">
+                  <div className="p-3 md:p-6 lg:p-8 max-w-md mx-auto lg:mx-0">
+                    <img src={aamLogo} alt="AAM Logo" className="mb-4 md:mb-6 aam-logo mx-auto block" />
+                    <div className="mt-2">
+                      <HCPDetailsForm 
+                        onBack={handleBack} 
+                        onSubmit={handleSubmit}
+                        isLoading={isLoading}
+                        error={error}
+                        existingDoctors={existingDoctors}
+                        initialDoctor={initialDoctor}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          
-          <footer className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
+
+          {/* Tablet only (md–lg): girl's photo at bottom, no overlap with form */}
+          <div className="hidden md:block lg:hidden flex-1 min-h-0 mt-4">
+            <img
+              src={bgTablet}
+              alt=""
+              className="w-full h-full object-cover object-top"
+            />
+          </div>
+
+          {/* Mobile: no photo */}
+
+          <footer className="absolute right-4 top-1/2 -translate-y-1/2 z-10 hidden lg:block">
             <p className="text-xs text-black text-right whitespace-nowrap" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
               All the images used in this material are for illustration purposes only
             </p>

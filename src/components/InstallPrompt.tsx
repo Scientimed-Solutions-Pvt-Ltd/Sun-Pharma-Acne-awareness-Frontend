@@ -98,13 +98,10 @@ const InstallPrompt = () => {
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600 to-purple-700 shadow-lg animate-slide-up">
         <div className="max-w-lg mx-auto p-4">
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0">
-              <img src="/icon.png" alt="App icon" className="w-14 h-14 rounded-xl shadow-lg border-2 border-white" />
-            </div>
             
             <div className="flex-1 text-white">
               <h3 className="font-bold text-lg mb-0.5">
-                Install Yellow March App
+                Install SunPharma Acne Awareness App
               </h3>
               <p className="text-sm text-purple-100">
                 Quick access from your home screen
@@ -138,9 +135,6 @@ const InstallPrompt = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fade-in">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-scale-in">
             <div className="text-center mb-4">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <img src="/icon.png" alt="App icon" className="w-12 h-12 rounded-lg" />
-              </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Add to Home Screen
               </h3>

@@ -18,13 +18,16 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, userName, showMenu = true 
         </div> */}
         
         <div className="w-full px-2 md:px-16">
-          <div className="flex items-center justify-between pb-1 lg:py-1 xl:py-2">
-            <div>
+          <div className="flex items-center justify-between py-0.5">
+            <div className="flex flex-col items-start">
+              <span className="text-white leading-none" style={{ fontSize: '0.75rem' }}>
+                An educational partner
+              </span>
               <img 
                 src={sunpharmalogo} 
                 alt="Sun Pharma Logo" 
-                className="h-15 sm:h-15 lg:h-15 xl:h-20 w-auto"
-                style={{height:80}}
+                className="w-auto"
+                style={{height:62}}
               />
             </div>
             
