@@ -20,6 +20,9 @@ interface Doctor {
   updated_at: string;
 }
 
+const getDoctorPhoto = (id: number): string | null =>
+  localStorage.getItem(`doctor_photo_${id}`);
+
 const HCPList: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userName, setUserName] = useState('');
@@ -38,6 +41,7 @@ const HCPList: React.FC = () => {
 
   // Handle selecting a doctor to edit
   const handleSelectDoctor = (doctor: Doctor) => {
+    if (doctor.pledge_taken) return; // Already pledged — do nothing
     navigate('/hcp-details', { state: { selectedDoctor: doctor } });
   };
 
@@ -180,14 +184,27 @@ const HCPList: React.FC = () => {
                           {doctors.map((doctor, index) => (
                             <tr 
                               key={doctor.id} 
-                              className="hover:bg-purple-50 transition-colors cursor-pointer"
+                              className={`transition-colors ${doctor.pledge_taken ? 'cursor-default' : 'hover:bg-purple-50 cursor-pointer'}`}
                               onClick={() => handleSelectDoctor(doctor)}
                             >
                               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {index + 1}
                               </td>
                               <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {doctor.dr_name}
+                                <div className="flex items-center gap-2">
+                                  {getDoctorPhoto(doctor.id) ? (
+                                    <img
+                                      src={getDoctorPhoto(doctor.id)!}
+                                      alt={doctor.dr_name}
+                                      className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-200"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 text-purple-700 text-xs font-bold">
+                                      {doctor.dr_name.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  {doctor.dr_name}
+                                </div>
                               </td>
                               <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                                 {doctor.p_code || 'N/A'}

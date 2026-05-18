@@ -63,6 +63,10 @@ const HCPDetails: React.FC = () => {
         // Save doctor data to localStorage
         saveDoctorData(response.data);
         console.log('Doctor data saved to localStorage');
+        // Persist photo against doctor ID so HCP list can display it
+        if (data.photo) {
+          localStorage.setItem(`doctor_photo_${response.data.id}`, data.photo);
+        }
         // Navigate to info slider page on success
         navigate('/info-slider');
       } else {
@@ -141,7 +145,7 @@ const HCPDetails: React.FC = () => {
         <Header onMenuClick={toggleMenu} userName={userName} showMenu={true} />
         <SideMenu isOpen={isMenuOpen} onClose={closeMenu} userName={userName} />
         
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-y-auto">
 
           {/* Form area — top-aligned on mobile/tablet, centered on desktop */}
           <div className="lg:flex-1 lg:flex lg:flex-col lg:justify-center">
