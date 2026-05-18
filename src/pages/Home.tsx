@@ -89,8 +89,14 @@ const Home: React.FC = () => {
               <div className="flex items-center justify-center lg:justify-start">
                 <div className="w-full lg:w-1/2">
                   <div className="p-3 md:p-6 lg:p-8 max-w-md mx-auto lg:mx-0">
-                    <img src={aamLogo} alt="Acne Awareness Month Logo" className="mb-4 md:mb-6 aam-logo mx-auto block" />
-                    <div className="mt-3 md:mt-4">
+                    <div className="text-center mb-2 md:mb-3">
+                      <h2 className="text-sm sm:text-base md:text-lg font-extrabold leading-tight"
+                          style={{ background: 'linear-gradient(90deg, #A82682, #E3175F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        Driving Nationwide Engagement Towards An Asia Book Of Records
+                      </h2>
+                    </div>
+                    <img src={aamLogo} alt="Acne Awareness Month Logo" className="mb-2 md:mb-3 aam-logo mx-auto block" />
+                    <div className="mt-2 md:mt-3">
                       <LoginForm onLogin={handleLogin} isLoading={isLoading} error={error} />
                     </div>
                   </div>

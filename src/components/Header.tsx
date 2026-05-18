@@ -19,9 +19,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, userName, showMenu = true 
         
         <div className="w-full px-2 md:px-16">
           <div className="flex items-center justify-between py-0.5">
-            <div className="flex flex-col items-start">
+            <div className="flex flex-col items-center">
               <span className="text-white leading-none" style={{ fontSize: '0.75rem' }}>
-                An educational partner
+                An Educational Partner
               </span>
               <img 
                 src={sunpharmalogo} 

@@ -542,7 +542,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
               
 
                 {/* Text Content */}
-               <div className="w-full md:w-[62%] text-center">
+               <div className="w-full md:w-[57%] text-center">
                   {/* Show speech UI or Continue button after pledge */}
                   {!pledgeCompleted && !isAnimating ? (
                     <>
@@ -614,7 +614,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                           onClick={handleSkipClick}
                           className="px-8 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-full text-lg font-medium transition-all duration-300 animate-fade-in mb-1 mt-4"
                         >
-                          Skip
+                          Continue
                         </button>
                       )}
                     </>
@@ -635,7 +635,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                 </div>
 
                   {/* Gray Awareness Ribbon with Progress */}
-                 <div className="w-full md:w-[25%] text-center z-20">
+                 <div className="w-full md:w-[30%] text-center z-20 flex flex-col items-center">
                    <RibbonProgress
                      percentage={pledgeCompleted || isAnimating ? 100 : 0}
                      transitionDuration={2000}
@@ -645,6 +645,15 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                          : 'scale-100'
                      }`}
                    />
+                   {/* Support Message */}
+                   <div className="mt-3 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-center">
+                     <p className="text-[10px] md:text-xs text-gray-600 leading-snug">
+                       For any issues, please reach out to me directly.
+                     </p>
+                     <p className="text-[11px] md:text-sm font-semibold text-[#A82682] mt-0.5">
+                       Contact No: 9653437188
+                     </p>
+                   </div>
                 </div>
               </div>
             

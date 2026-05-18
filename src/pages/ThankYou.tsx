@@ -73,48 +73,57 @@ const ThankYou: React.FC = () => {
         <SideMenu isOpen={isMenuOpen} onClose={closeMenu} /> */}
         
         <main className="flex-1 flex items-center justify-center text-center">
-          <div className="w-[90%] md:w-[80%] flex flex-col gap-2 justify-center items-center py-4 lg:py-2 text-center">
-            {/* Live Count Title */}
-            <h2 className="hdng1 text-3xl">
-              Live count of pledges taken by<br/>the HCPs across India
-            </h2>
+          <div className="w-[90%] md:w-[80%] flex flex-col gap-2 justify-center items-center py-3 lg:py-2 text-center">
+            
+            {/* Thank You Heading */}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-none"
+                style={{ background: 'linear-gradient(90deg, #A82682, #E3175F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Thank You!
+            </h1>
 
-            {/* Counter Display */}
-            <div className="flex items-center justify-center gap-1 my-2 lg:my-2">
-              {formatCount(pledgeCount).map((digit, index) => (
-                <div 
-                  key={index}
-                  className="w-14 h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 rounded-lg flex items-center justify-center shadow-md counterbg">
-                  <span className="text-2xl md:text-3xl lg:text-4xl">{digit}</span>
-                </div>
-              ))}
+            {/* Campaign Text */}
+            <p className="text-sm md:text-base lg:text-lg text-gray-700 font-medium leading-snug max-w-2xl">
+              for your participation in<br />
+              <b><i className="text-base md:text-lg lg:text-xl" style={{ color: '#A82682' }}>"Regain coNFidence in my Acne patients" Campaign</i></b>
+              <br />
+              <span className="text-lg md:text-xl lg:text-2xl font-extrabold text-[#E3175F]">Acne Awareness Month</span>
+            </p>
+
+            {/* Live Count Section */}
+            <div className="w-full max-w-lg rounded-2xl py-4 px-5" style={{ background: 'linear-gradient(135deg, rgba(168,38,130,0.08) 0%, rgba(227,23,95,0.08) 100%)', border: '2px solid rgba(168,38,130,0.25)' }}>
+              {/* Live Count Label */}
+              <p className="font-black uppercase tracking-wide leading-tight mb-3"
+                 style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.35rem)', background: 'linear-gradient(90deg, #A82682, #E3175F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Live Count Across India,<br />
+                Asia Book Of Record In Making
+              </p>
+
+              {/* Counter Display */}
+              <div className="flex items-center justify-center gap-1">
+                {formatCount(pledgeCount).map((digit, index) => (
+                  <div 
+                    key={index}
+                    className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 xl:w-20 xl:h-20 rounded-lg flex items-center justify-center shadow-md counterbg">
+                    <span className="text-xl md:text-2xl lg:text-3xl xl:text-4xl">{digit}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Thank You Message */}
-            {/* <h1 className="text-5xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-relaxed">
-              Thank you
-            </h1> */}
-            
-            <p className="thanktext text-xl lg:text-2xl xl:text-3xl">
-              Thank you for your participation in <br />
-              <b><i>"Regain coNFidence in my Acne patients" Campaign</i></b>
-            <br />
-             <span>Acne Awareness Month</span>
-            </p>
-            
-             <p className="text-center text-xl">
-                    <b>Awareness initiative by:</b>
-                   <br />
-                   <img src={sunPharmaLogo} alt="Sun Pharma Logo" className="h-12 md:h-16 lg:h-20 mx-auto my-2" />
-        <b>Sun Pharma Laboratories Ltd.</b>
-            <br />
-            <span style={{fontSize: '16px', lineHeight: 'normal'}}>Sun House, Plot No. 201 B/1, Western Express Highway, Goregaon (East), Mumbai – 400 063, India</span>
-            </p>
+            {/* Sun Pharma Section */}
+            <div className="text-center mt-1">
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Awareness initiative by:</p>
+              <img src={sunPharmaLogo} alt="Sun Pharma Logo" className="h-8 md:h-10 lg:h-12 mx-auto my-1" />
+              <p className="text-sm md:text-base font-semibold text-gray-700">Sun Pharma Laboratories Ltd.</p>
+              <p className="text-gray-500 leading-snug" style={{ fontSize: '11px' }}>
+                Sun House, Plot No. 201 B/1, Western Express Highway, Goregaon (East), Mumbai – 400 063, India
+              </p>
+            </div>
 
             {/* Home Button */}
             <button
               onClick={() => navigate('/hcp-details')}
-              className="px-4 py-1 text-white font-semibold rounded-full shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+              className="px-6 py-1.5 text-white font-semibold rounded-full shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-sm md:text-base"
               style={{ backgroundColor: '#8f3c84' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7a3370'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f3c84'}

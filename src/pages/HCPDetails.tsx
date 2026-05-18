@@ -16,7 +16,7 @@ const HCPDetails: React.FC = () => {
   const [existingDoctors, setExistingDoctors] = useState<any[]>([]);
   const [initialDoctor, setInitialDoctor] = useState<any>(null);
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); 
 
   useEffect(() => { document.title = 'Enter HCP Details | Acne Awareness Month'; }, []);
 

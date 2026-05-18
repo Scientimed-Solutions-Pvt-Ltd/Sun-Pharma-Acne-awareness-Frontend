@@ -11,19 +11,19 @@ import { getUserData } from '../services/api';
 
 // Slide 1 Component - Acne Awareness Statistics
 const Slide1: React.FC = () => (
-  <div className="w-full h-full relative overflow-hidden bg-white">
-    <div className="flex flex-col md:flex-row h-full items-center justify-center">
+  <div className="w-full h-full overflow-hidden bg-white">
+    <div className="flex flex-col md:flex-row h-full">
       {/* Left Side - Woman Image */}
-      <div className="w-full lg:w-1/2 h-1/2 md:h-full flex items-end justify-center md:justify-end">
+      <div className="w-full md:w-[42%] h-[38%] md:h-full flex items-end justify-center md:justify-end overflow-hidden">
         <img 
           src={slider1Img} 
           alt="Acne Awareness" 
-          className="h-full w-auto object-contain object-center"
+          className="max-h-full w-auto object-contain"
         />
       </div>
       
       {/* Right Side - Text Content */}
-      <div className="w-full lg:w-1/2 h-1/2 lg:h-full flex flex-col items-center justify-center md:justify-center md:items-start p-0 md:p-2">
+      <div className="flex-1 h-[62%] md:h-full flex flex-col items-center justify-center md:items-start p-0 md:p-2 overflow-hidden">
         {/* Mobile/Tablet Image (below 1025px) */}
         <img 
           src={slider1TextSm} 
@@ -49,16 +49,16 @@ const Slide2: React.FC = () => (
   <div className="w-full h-full relative overflow-hidden bg-white">
     <div className="flex flex-col md:flex-row h-full items-center justify-center">
       {/* Left Side - Woman Image */}
-      <div className="w-full md:w-1/2 h-1/2 md:h-full flex items-end justify-center md:justify-start">
+      <div className="w-full md:w-[40%] h-[38%] md:h-full flex items-end justify-center md:justify-start overflow-hidden">
         <img 
           src={slider2Img} 
           alt="Acne Awareness" 
-          className="h-full w-auto object-contain object-center"
+          className="max-h-full w-auto object-contain"
         />
       </div>
       
       {/* Right Side - Text Content */}
-      <div className="w-full lg:w-1/2 h-1/2 lg:h-full flex flex-col items-center justify-start md:justify-start md:items-start p-0 md:p-2">
+      <div className="flex-1 h-[62%] md:h-full flex flex-col items-center justify-start md:justify-start md:items-start p-0 md:p-2 overflow-hidden">
         <img 
           src={slider2Text} 
           alt="Acne Information" 
