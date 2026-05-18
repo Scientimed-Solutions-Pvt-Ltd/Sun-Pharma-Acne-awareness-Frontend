@@ -12,7 +12,7 @@ import bgMobile from '../assets/images/bg01-sm.png';
 const Carousel: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userName, setUserName] = useState('');
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
