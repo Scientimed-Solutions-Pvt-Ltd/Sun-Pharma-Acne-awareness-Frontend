@@ -6,6 +6,7 @@ import SideMenu from '../components/SideMenu';
 import bgDesktop from '../assets/images/bg01.png';
 import bgTablet from '../assets/images/bg01-md.png';
 import aamLogo from '../assets/images/aam-logo.png';
+import asiaBookLogo from '../assets/images/logo-asia-book-of-records_m.webp';
 import { mrLogin, saveUserData } from '../services/api';
 
 const Home: React.FC = () => {
@@ -89,13 +90,8 @@ const Home: React.FC = () => {
               <div className="flex items-center justify-center lg:justify-start">
                 <div className="w-full lg:w-1/2">
                   <div className="p-3 md:p-6 lg:p-8 max-w-md mx-auto lg:mx-0">
-                    <div className="text-center mb-2 md:mb-3">
-                      <h2 className="text-sm sm:text-base md:text-lg font-extrabold leading-tight"
-                          style={{ background: 'linear-gradient(90deg, #A82682, #E3175F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        Driving Nationwide Engagement Towards An Asia Book Of Records
-                      </h2>
-                    </div>
                     <img src={aamLogo} alt="Acne Awareness Month Logo" className="mb-2 md:mb-3 aam-logo mx-auto block" />
+                    <img src={asiaBookLogo} alt="Asia Book of Records" className="mb-2 md:mb-3 mx-auto block" />
                     <div className="mt-2 md:mt-3">
                       <LoginForm onLogin={handleLogin} isLoading={isLoading} error={error} />
                     </div>

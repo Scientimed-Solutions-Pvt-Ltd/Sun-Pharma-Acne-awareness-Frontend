@@ -21,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, userName, showMenu = true 
           <div className="flex items-center justify-between py-0.5">
             <div className="flex flex-col items-center">
               <span className="text-white leading-none" style={{ fontSize: '0.75rem' }}>
-                An Educational Partner
+                An Awareness Initiative
               </span>
               <img 
                 src={sunpharmalogo} 
