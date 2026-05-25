@@ -6,7 +6,7 @@ import SideMenu from '../components/SideMenu';
 import aamLogo from '../assets/images/aam-logo.png';
 import bgDesktop from '../assets/images/bg01.png';
 import bgTablet from '../assets/images/bg01-md.png';
-import { getUserData, addDoctor, updateDoctor, saveDoctorData, getDoctorsByFieldTeam } from '../services/api';
+import { getUserData, addDoctor, updateDoctor, saveDoctorData, getDoctorsByFieldTeam, uploadPhotoToServer } from '../services/api';
 
 const HCPDetails: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -66,6 +66,8 @@ const HCPDetails: React.FC = () => {
         // Persist photo against doctor ID so HCP list can display it
         if (data.photo) {
           localStorage.setItem(`doctor_photo_${response.data.id}`, data.photo);
+          // Also upload to server so it appears in reports
+          uploadPhotoToServer(response.data.id, data.photo).catch(() => {});
         }
         // Navigate to info slider page on success
         navigate('/info-slider');

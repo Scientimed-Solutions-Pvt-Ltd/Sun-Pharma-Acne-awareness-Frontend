@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
 import bgDesktop from '../assets/images/bg01.png';
-import { getUserData, getDoctorsByFieldTeam } from '../services/api';
+import { getUserData, getDoctorsByFieldTeam, getVideoFromDB, hasVideoInDB, saveVideoToDB, uploadVideoToServer } from '../services/api';
 
 interface Doctor {
   id: number;
@@ -29,6 +29,38 @@ const HCPList: React.FC = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [videoAvailability, setVideoAvailability] = useState<Record<number, boolean>>({});
+  const [videoModalUrl, setVideoModalUrl] = useState<string | null>(null);
+  const [videoModalName, setVideoModalName] = useState('');
+
+  // Retake video states
+  const [retakeDoctor, setRetakeDoctor] = useState<Doctor | null>(null);
+  const [retakeVideoBlob, setRetakeVideoBlob] = useState<Blob | null>(null);
+  const [retakeVideoUrl, setRetakeVideoUrl] = useState<string | null>(null);
+  const [retakePhase, setRetakePhase] = useState<'idle' | 'recording' | 'preview'>('idle');
+  const [isSavingVideo, setIsSavingVideo] = useState(false);
+  const [retakeRecordingSeconds, setRetakeRecordingSeconds] = useState(0);
+  const [_retakeVideoError, setRetakeVideoError] = useState('');
+  const retakeMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const retakeVideoChunksRef = useRef<Blob[]>([]);
+  const retakeLiveVideoRef = useRef<HTMLVideoElement>(null);
+  const retakeCameraStreamRef = useRef<MediaStream | null>(null);
+  const retakeUploadRef = useRef<HTMLInputElement>(null);
+  const retakeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const retakeStartTimeRef = useRef<number>(0);
+
+  const MIN_RECORDING_SECONDS = 7;
+
+  // Stable ref callback — only fires on mount/unmount, never on re-renders
+  // This prevents the 500ms timer re-renders from resetting srcObject and flickering the preview
+  const attachLiveVideo = useCallback((el: HTMLVideoElement | null) => {
+    retakeLiveVideoRef.current = el;
+    if (el && retakeCameraStreamRef.current) {
+      el.srcObject = retakeCameraStreamRef.current;
+      el.play().catch(() => {});
+    }
+  }, []);
+
   const navigate = useNavigate();
 
   const toggleMenu = () => {
@@ -50,6 +82,148 @@ const HCPList: React.FC = () => {
     navigate('/hcp-details', { state: { selectedDoctor: doctor } });
   };
 
+  // Open video modal for a doctor
+  const handlePlayVideo = async (doctor: Doctor) => {
+    try {
+      const blob = await getVideoFromDB(doctor.id);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        setVideoModalUrl(url);
+        setVideoModalName(doctor.dr_name);
+      }
+    } catch (err) {
+      console.error('Failed to load video:', err);
+    }
+  };
+
+  const closeVideoModal = () => {
+    if (videoModalUrl) URL.revokeObjectURL(videoModalUrl);
+    setVideoModalUrl(null);
+    setVideoModalName('');
+  };
+
+// Retake video handlers
+  const openRetakeModal = (doctor: Doctor) => {
+    setRetakeDoctor(doctor);
+    setRetakeVideoBlob(null);
+    setRetakeVideoUrl(null);
+    setRetakePhase('idle');
+    setRetakeRecordingSeconds(0);
+    setRetakeVideoError('');
+  };
+
+  const closeRetakeModal = useCallback(() => {
+    if (retakeCameraStreamRef.current) {
+      retakeCameraStreamRef.current.getTracks().forEach(t => t.stop());
+      retakeCameraStreamRef.current = null;
+    }
+    if (retakeTimerRef.current) {
+      clearInterval(retakeTimerRef.current);
+      retakeTimerRef.current = null;
+    }
+    if (retakeVideoUrl) URL.revokeObjectURL(retakeVideoUrl);
+    setRetakeDoctor(null);
+    setRetakeVideoBlob(null);
+    setRetakeVideoUrl(null);
+    setRetakePhase('idle');
+    setRetakeRecordingSeconds(0);
+    setRetakeVideoError('');
+  }, [retakeVideoUrl]);
+
+  const startRetakeRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      retakeCameraStreamRef.current = stream;
+      retakeVideoChunksRef.current = [];
+      setRetakeRecordingSeconds(0);
+      setRetakeVideoError('');
+
+      const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
+        .find(t => MediaRecorder.isTypeSupported(t)) || '';
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      retakeMediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) retakeVideoChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        if (retakeTimerRef.current) {
+          clearInterval(retakeTimerRef.current);
+          retakeTimerRef.current = null;
+        }
+        const elapsed = Math.round((Date.now() - retakeStartTimeRef.current) / 1000);
+        stream.getTracks().forEach(t => t.stop());
+        retakeCameraStreamRef.current = null;
+        if (retakeLiveVideoRef.current) retakeLiveVideoRef.current.srcObject = null;
+
+        if (elapsed < MIN_RECORDING_SECONDS) {
+          setRetakePhase('idle');
+          setRetakeVideoError(`Recording must be at least ${MIN_RECORDING_SECONDS} seconds. You recorded ${elapsed}s. Please try again.`);
+          return;
+        }
+        const blobType = (mimeType || 'video/webm').split(';')[0];
+        const blob = new Blob(retakeVideoChunksRef.current, { type: blobType });
+        const url = URL.createObjectURL(blob);
+        setRetakeVideoBlob(blob);
+        setRetakeVideoUrl(url);
+        setRetakePhase('preview');
+      };
+
+      recorder.start(250);
+      retakeStartTimeRef.current = Date.now();
+      retakeTimerRef.current = setInterval(() => {
+        setRetakeRecordingSeconds(Math.floor((Date.now() - retakeStartTimeRef.current) / 1000));
+      }, 500);
+      setRetakePhase('recording');
+    } catch {
+      alert('Camera access denied. Please allow camera and microphone permissions.');
+    }
+  };
+
+  const stopRetakeRecording = () => {
+    retakeMediaRecorderRef.current?.stop();
+  };
+
+  const handleRetakeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (retakeVideoUrl) URL.revokeObjectURL(retakeVideoUrl);
+      setRetakeVideoBlob(file);
+      setRetakeVideoUrl(URL.createObjectURL(file));
+      setRetakePhase('preview');
+    }
+  };
+
+  const clearRetakeVideo = () => {
+    if (retakeVideoUrl) URL.revokeObjectURL(retakeVideoUrl);
+    setRetakeVideoBlob(null);
+    setRetakeVideoUrl(null);
+    setRetakePhase('idle');
+    if (retakeUploadRef.current) retakeUploadRef.current.value = '';
+  };
+
+  const saveRetakeVideo = async () => {
+    if (!retakeDoctor || !retakeVideoBlob) return;
+    setIsSavingVideo(true);
+    try {
+      await saveVideoToDB(retakeDoctor.id, retakeVideoBlob);
+      try {
+        await uploadVideoToServer(retakeDoctor.id, retakeVideoBlob);
+      } catch {
+        console.error('Failed to upload retake video to server');
+      }
+      setVideoAvailability(prev => ({ ...prev, [retakeDoctor.id]: true }));
+      closeRetakeModal();
+    } catch {
+      alert('Failed to save video. Please try again.');
+    } finally {
+      setIsSavingVideo(false);
+    }
+  };
+
   // Fetch doctors for the logged-in MR
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -68,6 +242,14 @@ const HCPList: React.FC = () => {
         
         if (response.success) {
           setDoctors(response.data);
+          // Check video availability for each doctor
+          const availability: Record<number, boolean> = {};
+          await Promise.all(
+            response.data.map(async (d: Doctor) => {
+              availability[d.id] = await hasVideoInDB(d.id);
+            })
+          );
+          setVideoAvailability(availability);
         } else {
           setError('Failed to load HCP list');
         }
@@ -178,6 +360,9 @@ const HCPList: React.FC = () => {
                             <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">
                               Pledge Status
                             </th>
+                            <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">
+                              Video
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -237,6 +422,31 @@ const HCPList: React.FC = () => {
                                   </div>
                                 )}
                               </td>
+                              {/* Video Status */}
+                              <td className="px-4 py-4 whitespace-nowrap text-center" onClick={(e) => e.stopPropagation()}>
+                                {videoAvailability[doctor.id] ? (
+                                  <button
+                                    onClick={() => handlePlayVideo(doctor)}
+                                    title="Play video"
+                                    className="p-2 rounded-full bg-[#A82682] hover:bg-[#8e1f6e] text-white transition-colors inline-flex items-center justify-center"
+                                  >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => openRetakeModal(doctor)}
+                                    title="Record or upload video"
+                                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-[#A82682] hover:bg-[#8e1f6e] rounded-full transition-colors mx-auto"
+                                  >
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+                                    </svg>
+                                    Retake
+                                  </button>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -278,6 +488,133 @@ const HCPList: React.FC = () => {
           </p>
         </footer>
       </div>
+
+      {/* Retake Video Modal */}
+      {retakeDoctor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75"
+          onClick={closeRetakeModal}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-[95%] max-w-lg overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#A82682] to-[#E3175F]">
+              <h3 className="text-white font-semibold text-base truncate">
+                {retakeDoctor.dr_name} — Record / Upload Video
+              </h3>
+              <button onClick={closeRetakeModal} className="text-white/80 hover:text-white text-2xl leading-none ml-4">×</button>
+            </div>
+
+            <div className="p-5">
+              {retakePhase === 'recording' && (
+                <div className="flex flex-col items-center gap-3">
+                  <video ref={attachLiveVideo} autoPlay muted playsInline className="w-full rounded-xl border border-gray-300" />
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse inline-block" />
+                    <span className="text-sm font-mono font-semibold text-gray-700">
+                      {String(Math.floor(retakeRecordingSeconds / 60)).padStart(2, '0')}:{String(retakeRecordingSeconds % 60).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <button
+                    onClick={stopRetakeRecording}
+                    disabled={retakeRecordingSeconds < MIN_RECORDING_SECONDS}
+                    className="flex items-center gap-2 px-6 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full font-medium transition-all"
+                  >
+                    <span className="w-3 h-3 bg-white rounded-sm inline-block" />
+                    Stop Recording
+                  </button>
+                </div>
+              )}
+
+              {retakePhase === 'idle' && (
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={startRetakeRecording}
+                    className="flex items-center justify-center gap-2 w-full px-6 py-2.5 bg-[#A82682] hover:bg-[#8e1f6e] text-white rounded-full font-medium transition-all"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+                    </svg>
+                    Record Video
+                  </button>
+                  <label className="flex items-center justify-center gap-2 w-full px-6 py-2.5 border-2 border-[#A82682] text-[#A82682] hover:bg-[#A82682] hover:text-white rounded-full font-medium transition-all cursor-pointer">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload Video
+                    <input ref={retakeUploadRef} type="file" accept="video/*" className="hidden" onChange={handleRetakeUpload} />
+                  </label>
+                </div>
+              )}
+
+              {retakePhase === 'preview' && (
+                <div className="flex flex-col items-center gap-3">
+                  <video key={retakeVideoUrl || ''} src={retakeVideoUrl || ''} controls playsInline preload="auto" className="w-full rounded-xl border border-gray-300" />
+                  <button
+                    onClick={clearRetakeVideo}
+                    className="flex items-center gap-1.5 px-4 py-1.5 border border-gray-400 text-gray-600 hover:border-[#A82682] hover:text-[#A82682] rounded-full text-sm font-medium transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Retake
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 bg-gray-50 border-t flex justify-end gap-3">
+              <button onClick={closeRetakeModal} className="px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-full hover:bg-gray-100 transition-all">
+                Cancel
+              </button>
+              <button
+                onClick={saveRetakeVideo}
+                disabled={!retakeVideoBlob || isSavingVideo}
+                className="px-5 py-2 text-sm text-white bg-[#A82682] hover:bg-[#8e1f6e] rounded-full font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isSavingVideo ? 'Saving...' : 'Save Video'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Playback Modal */}
+      {videoModalUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75"
+          onClick={closeVideoModal}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-[95%] max-w-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#A82682] to-[#E3175F]">
+              <h3 className="text-white font-semibold text-base truncate">{videoModalName} — Pledge Video</h3>
+              <button
+                onClick={closeVideoModal}
+                className="text-white/80 hover:text-white text-2xl leading-none ml-4"
+              >
+                ×
+              </button>
+            </div>
+            {/* Video Player */}
+            <div className="p-4 bg-black">
+              <video
+                src={videoModalUrl}
+                controls
+                autoPlay
+                playsInline
+                className="w-full rounded-lg max-h-[60vh]"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

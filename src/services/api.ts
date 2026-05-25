@@ -287,6 +287,92 @@ export const getDoctorsByFieldTeam = async (fieldTeamId: number): Promise<Doctor
   return data;
 };
 
+// === IndexedDB helpers for doctor videos ===
+const VIDEO_DB_NAME = 'doctorVideosDB';
+const VIDEO_STORE = 'videos';
+
+const openVideoDB = (): Promise<IDBDatabase> =>
+  new Promise((resolve, reject) => {
+    const req = indexedDB.open(VIDEO_DB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = (e.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(VIDEO_STORE)) {
+        db.createObjectStore(VIDEO_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+export const saveVideoToDB = async (doctorId: number, blob: Blob): Promise<void> => {
+  const db = await openVideoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(VIDEO_STORE, 'readwrite');
+    tx.objectStore(VIDEO_STORE).put(blob, `doctor_video_${doctorId}`);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+export const getVideoFromDB = async (doctorId: number): Promise<Blob | null> => {
+  const db = await openVideoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(VIDEO_STORE, 'readonly');
+    const req = tx.objectStore(VIDEO_STORE).get(`doctor_video_${doctorId}`);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror = () => reject(req.error);
+  });
+};
+
+export const hasVideoInDB = async (doctorId: number): Promise<boolean> => {
+  const blob = await getVideoFromDB(doctorId);
+  return blob !== null;
+};
+
+// === Backend video upload/status helpers ===
+export const uploadVideoToServer = async (doctorId: number, blob: Blob): Promise<void> => {
+  const formData = new FormData();
+  // Convert blob to webm file
+  formData.append('video', blob, `doctor_video_${doctorId}.webm`);
+  const response = await fetch(`${API_BASE_URL}/doctors/${doctorId}/video`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || `Video upload failed: ${response.status}`);
+  }
+};
+
+export const uploadPhotoToServer = async (doctorId: number, base64Photo: string): Promise<string | null> => {
+  try {
+    // Convert base64 to blob
+    const res = await fetch(base64Photo);
+    const blob = await res.blob();
+    const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
+    const formData = new FormData();
+    formData.append('photo', blob, `doctor_photo_${doctorId}.${ext}`);
+    const response = await fetch(`${API_BASE_URL}/doctors/${doctorId}/photo`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    return data.success ? data.photo_url : null;
+  } catch {
+    return null;
+  }
+};
+
+export const getVideoStatusFromServer = async (doctorId: number): Promise<{ has_video: boolean; video_url: string | null }> => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/doctors/${doctorId}/video-status`);
+    const data = await res.json();
+    return { has_video: data.has_video ?? false, video_url: data.video_url ?? null };
+  } catch {
+    return { has_video: false, video_url: null };
+  }
+};
+
 // Update Doctor API
 export const updateDoctor = async (
   id: number,

@@ -28,6 +28,7 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   title?: string;
   filters?: React.ReactNode;
+  extraActions?: (item: T) => React.ReactNode;
 }
 
 function DataTable<T extends { id: number }>({
@@ -45,6 +46,7 @@ function DataTable<T extends { id: number }>({
   searchPlaceholder = 'Search...',
   title,
   filters,
+  extraActions,
 }: DataTableProps<T>) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -184,6 +186,7 @@ function DataTable<T extends { id: number }>({
                   ))}
                   {(onView || onEdit || onDelete) && (
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      {extraActions && extraActions(item)}
                       {onView && (
                         <button
                           onClick={() => onView(item)}

@@ -1260,6 +1260,9 @@ export interface TodaysPledge {
   pledge_date: string;
   pledge_time: string;
   terms_time: string;
+  video_status: boolean;
+  video_url: string | null;
+  photo_url: string | null;
 }
 
 export interface TodaysPledgesResponse {

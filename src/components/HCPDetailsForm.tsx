@@ -91,6 +91,7 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
   const [pCodeError, setPCodeError] = useState('');
   const [mobileError, setMobileError] = useState('');
   const [cityError, setCityError] = useState('');
+  const [photoError, setPhotoError] = useState('');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -283,6 +284,7 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
     setPCodeError('');
     setMobileError('');
     setCityError('');
+    setPhotoError('');
     
     // Custom validation
     let hasError = false;
@@ -307,6 +309,11 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
     
     if (!formData.city.trim()) {
       setCityError('Please enter city');
+      hasError = true;
+    }
+
+    if (!formData.photo) {
+      setPhotoError('Please take a photo');
       hasError = true;
     }
     
@@ -461,6 +468,11 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
 
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-medium mb-2">Take Photo</label>
+          {photoError && (
+            <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+              {photoError}
+            </div>
+          )}
           {/* File input for photo */}
           <div className="flex items-center border border-gray-300 rounded-lg bg-white overflow-hidden">
             <label 
@@ -480,7 +492,7 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
               name="photo"
               accept="image/*"
               capture="environment"
-              onChange={handlePhotoChange}
+              onChange={(e) => { setPhotoError(''); handlePhotoChange(e); }}
             />
           </div>
           

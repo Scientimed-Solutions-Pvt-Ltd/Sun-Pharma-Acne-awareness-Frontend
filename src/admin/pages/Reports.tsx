@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { hasVideoInDB } from '../../services/api';
 import {
   getReportSummary,
   getZoneWiseReport,
@@ -49,6 +50,7 @@ const Reports: React.FC = () => {
   const [hierarchyData, setHierarchyData] = useState<HierarchyPerformance[]>([]);
   const [todaysPledges, setTodaysPledges] = useState<TodaysPledge[]>([]);
   const [todaysPledgeCount, setTodaysPledgeCount] = useState(0);
+  const [pledgeVideoAvailability, setPledgeVideoAvailability] = useState<Record<number, boolean>>({});
   
   // Date range and sorting for pledges
   const [pledgeStartDate, setPledgeStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -96,8 +98,21 @@ const Reports: React.FC = () => {
         sort_order: pledgeSortOrder,
       });
       if (response.success) {
-        setTodaysPledges(response.data.pledges);
+        const pledges = response.data.pledges;
+        setTodaysPledges(pledges);
         setTodaysPledgeCount(response.data.total_count);
+        // Same fallback logic as DoctorsList: server video_status first, then IndexedDB
+        const availability: Record<number, boolean> = {};
+        await Promise.all(
+          pledges.map(async (p) => {
+            if (p.video_status) {
+              availability[p.id] = true;
+            } else {
+              availability[p.id] = await hasVideoInDB(p.id);
+            }
+          })
+        );
+        setPledgeVideoAvailability(availability);
       }
     } catch (err) {
       console.error('Failed to fetch pledges:', err);
@@ -550,6 +565,7 @@ const Reports: React.FC = () => {
                           <SortIcon field="pledge_taken_at" />
                         </div>
                       </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Video</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -558,8 +574,25 @@ const Reports: React.FC = () => {
                         <td className="px-4 py-3 text-sm text-gray-600">{idx + 1}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{pledge.pledge_date}</td>
                         <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-gray-900">{pledge.dr_name}</p>
-                          <p className="text-xs text-gray-500">{pledge.p_code || 'N/A'}</p>
+                          {(() => {
+                            const localPhoto = localStorage.getItem(`doctor_photo_${pledge.id}`);
+                            const photo = localPhoto || pledge.photo_url;
+                            return (
+                              <div className="flex items-center gap-2">
+                                {photo ? (
+                                  <img src={photo} alt={pledge.dr_name} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-200" />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 text-purple-700 text-xs font-bold">
+                                    {pledge.dr_name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{pledge.dr_name}</p>
+                                  <p className="text-xs text-gray-500">{pledge.p_code || 'N/A'}</p>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">{pledge.city || 'N/A'}</td>
                         <td className="px-4 py-3">
@@ -583,6 +616,28 @@ const Reports: React.FC = () => {
                           <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
                             {pledge.pledge_time}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-center">
+                          {pledgeVideoAvailability[pledge.id] ? (
+                            pledge.video_url ? (
+                              <a
+                                href={pledge.video_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                              >
+                                Available
+                              </a>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                Available
+                              </span>
+                            )
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-400">
+                              Not Available
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}

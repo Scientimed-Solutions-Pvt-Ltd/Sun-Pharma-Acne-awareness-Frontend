@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getDoctor } from '../../services/adminApi';
 import type { Doctor } from '../../services/adminApi';
+import { hasVideoInDB, getVideoFromDB, getVideoStatusFromServer } from '../../services/api';
 
 const DoctorsView: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [videoAvailable, setVideoAvailable] = useState(false);
+  const [videoServerUrl, setVideoServerUrl] = useState<string | null>(null);
+  const [videoModalUrl, setVideoModalUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -16,6 +20,14 @@ const DoctorsView: React.FC = () => {
         const response = await getDoctor(parseInt(id));
         if (response.success) {
           setDoctor(response.data);
+          const serverStatus = await getVideoStatusFromServer(response.data.id);
+          if (serverStatus.has_video) {
+            setVideoAvailable(true);
+            setVideoServerUrl(serverStatus.video_url);
+          } else {
+            const hasVideo = await hasVideoInDB(response.data.id);
+            setVideoAvailable(hasVideo);
+          }
         }
       } catch (error) {
         console.error('Failed to load doctor:', error);
@@ -26,6 +38,23 @@ const DoctorsView: React.FC = () => {
     };
     loadData();
   }, [id, navigate]);
+
+  const handlePlayVideo = async () => {
+    if (!doctor) return;
+    if (videoServerUrl) {
+      setVideoModalUrl(videoServerUrl);
+      return;
+    }
+    const blob = await getVideoFromDB(doctor.id);
+    if (blob) {
+      setVideoModalUrl(URL.createObjectURL(blob));
+    }
+  };
+
+  const closeVideoModal = () => {
+    if (videoModalUrl && videoModalUrl.startsWith('blob:')) URL.revokeObjectURL(videoModalUrl);
+    setVideoModalUrl(null);
+  };
 
   if (isLoading) {
     return (
@@ -171,6 +200,37 @@ const DoctorsView: React.FC = () => {
           )}
         </div>
 
+        {/* Video Status */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Video</h2>
+          {videoAvailable ? (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-3">
+                <svg className="w-8 h-8 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+              <p className="text-purple-700 font-semibold">Video Available</p>
+              <button
+                onClick={handlePlayVideo}
+                className="mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm transition-colors"
+              >
+                Play Video
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 font-medium">No Video</p>
+              <p className="text-gray-400 text-sm mt-1">Not yet recorded</p>
+            </div>
+          )}
+        </div>
+
         {/* Location Info */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Location</h2>
@@ -259,6 +319,21 @@ const DoctorsView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Video Playback Modal */}
+      {videoModalUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl overflow-hidden w-full max-w-2xl mx-4 shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-3 bg-purple-700">
+              <span className="text-white font-semibold truncate">{doctor?.dr_name}</span>
+              <button onClick={closeVideoModal} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+            </div>
+            <div className="bg-black">
+              <video src={videoModalUrl} controls autoPlay className="w-full max-h-[70vh]" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

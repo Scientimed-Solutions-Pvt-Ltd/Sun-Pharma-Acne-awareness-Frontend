@@ -9,6 +9,7 @@ import {
   getAllStates,
   getAllHqs,
 } from '../../services/adminApi';
+import { hasVideoInDB, getVideoFromDB, getVideoStatusFromServer } from '../../services/api';
 import type { Doctor, State, Hq } from '../../services/adminApi';
 
 const DoctorsList: React.FC = () => {
@@ -32,6 +33,12 @@ const DoctorsList: React.FC = () => {
   const [states, setStates] = useState<State[]>([]);
   const [hqs, setHqs] = useState<Hq[]>([]);
 
+  // Video states
+  const [videoAvailability, setVideoAvailability] = useState<Record<number, boolean>>({});
+  const [videoUrls, setVideoUrls] = useState<Record<number, string>>({});
+  const [videoModalUrl, setVideoModalUrl] = useState<string | null>(null);
+  const [videoModalName, setVideoModalName] = useState('');
+
   const fetchData = useCallback(async (page = 1) => {
     try {
       setIsLoading(true);
@@ -50,6 +57,23 @@ const DoctorsList: React.FC = () => {
           total: response.data.total,
           perPage: response.data.per_page,
         });
+        // Load video availability for this page from server (cross-browser)
+        const availability: Record<number, boolean> = {};
+        const urls: Record<number, string> = {};
+        await Promise.all(
+          response.data.data.map(async (d: Doctor) => {
+            const serverStatus = await getVideoStatusFromServer(d.id);
+            if (serverStatus.has_video) {
+              availability[d.id] = true;
+              if (serverStatus.video_url) urls[d.id] = serverStatus.video_url;
+            } else {
+              // Fallback to IndexedDB (same-browser recordings not yet uploaded)
+              availability[d.id] = await hasVideoInDB(d.id);
+            }
+          })
+        );
+        setVideoAvailability(availability);
+        setVideoUrls(urls);
       }
     } catch (error) {
       console.error('Failed to fetch doctors:', error);
@@ -119,11 +143,50 @@ const DoctorsList: React.FC = () => {
     }
   };
 
+  const handlePlayVideo = async (doctor: Doctor) => {
+    try {
+      // Prefer server URL, fallback to IndexedDB
+      if (videoUrls[doctor.id]) {
+        setVideoModalUrl(videoUrls[doctor.id]);
+        setVideoModalName(doctor.dr_name);
+        return;
+      }
+      const blob = await getVideoFromDB(doctor.id);
+      if (blob) {
+        setVideoModalUrl(URL.createObjectURL(blob));
+        setVideoModalName(doctor.dr_name);
+      }
+    } catch (err) {
+      console.error('Failed to load video:', err);
+    }
+  };
+
+  const closeVideoModal = () => {
+    // Only revoke object URLs (not server URLs)
+    if (videoModalUrl && videoModalUrl.startsWith('blob:')) URL.revokeObjectURL(videoModalUrl);
+    setVideoModalUrl(null);
+    setVideoModalName('');
+  };
+
   const columns = [
     { 
       key: 'dr_name', 
       title: 'Name',
-      render: (item: Doctor) => item.dr_name,
+      render: (item: Doctor) => {
+        const photo = localStorage.getItem(`doctor_photo_${item.id}`);
+        return (
+          <div className="flex items-center gap-2">
+            {photo ? (
+              <img src={photo} alt={item.dr_name} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-200" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 text-purple-700 text-xs font-bold">
+                {item.dr_name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span>{item.dr_name}</span>
+          </div>
+        );
+      },
     },
     { 
       key: 'registration_no', 
@@ -170,6 +233,20 @@ const DoctorsList: React.FC = () => {
               year: 'numeric',
             })
           : '-',
+    },
+    {
+      key: 'video_status',
+      title: 'Video',
+      render: (item: Doctor) =>
+        videoAvailability[item.id] ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+            Available
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-400">
+            Not Available
+          </span>
+        ),
     },
   ];
 
@@ -235,7 +312,47 @@ const DoctorsList: React.FC = () => {
         onCreate={() => navigate('/admin/doctors/create')}
         searchPlaceholder="Search by name, registration, mobile..."
         filters={filterComponent}
+        extraActions={(item) =>
+          videoAvailability[item.id] ? (
+            <button
+              onClick={() => handlePlayVideo(item)}
+              title="Play video"
+              className="text-purple-600 hover:text-purple-900"
+            >
+              <svg className="w-5 h-5 inline" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </button>
+          ) : null
+        }
       />
+
+      {/* Video Playback Modal */}
+      {videoModalUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75"
+          onClick={closeVideoModal}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-[95%] max-w-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 bg-purple-700">
+              <h3 className="text-white font-semibold text-base truncate">{videoModalName} &mdash; Pledge Video</h3>
+              <button onClick={closeVideoModal} className="text-white/80 hover:text-white text-2xl leading-none ml-4">&times;</button>
+            </div>
+            <div className="p-4 bg-black">
+              <video
+                src={videoModalUrl}
+                controls
+                autoPlay
+                playsInline
+                className="w-full rounded-lg max-h-[60vh]"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

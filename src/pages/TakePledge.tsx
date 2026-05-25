@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
 import RibbonProgress from '../components/RibbonProgress';
 import clickGif from '../assets/images/click.gif';
 import bgImage from '../assets/images/bg02.png';
-import { getUserData, getDoctorData, acceptTerms, saveDoctorData, takePledge, getPledgeCount } from '../services/api';
+import { getUserData, getDoctorData, acceptTerms, saveDoctorData, takePledge, getPledgeCount, saveVideoToDB, uploadVideoToServer } from '../services/api';
 
 // Extend Window interface for SpeechRecognition API
 interface SpeechRecognitionEvent extends Event {
@@ -58,11 +58,35 @@ const TakePledge: React.FC = () => {
   const [isSupported, setIsSupported] = useState(true);
   const [showSkipButton, setShowSkipButton] = useState(false);
 
+  // Video states
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoPhase, setVideoPhase] = useState<'idle' | 'recording' | 'preview'>('idle');
+  const [_videoError, setVideoError] = useState('');  const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  const MIN_RECORDING_SECONDS = 7;
+
   useEffect(() => { document.title = 'Take the Pledge | Acne Awareness Month'; }, []);
-  
+
   const navigate = useNavigate();
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoChunksRef = useRef<Blob[]>([]);
+  const liveVideoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const uploadVideoRef = useRef<HTMLInputElement>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
+
+  // Stable ref callback — only fires on mount/unmount, never on timer re-renders
+  const attachLiveVideo = useCallback((el: HTMLVideoElement | null) => {
+    liveVideoRef.current = el;
+    if (el && cameraStreamRef.current) {
+      el.srcObject = cameraStreamRef.current;
+      el.play().catch(() => {});
+    }
+  }, []);
 
   /**
    * Calculate ribbon progress percentage
@@ -456,13 +480,118 @@ const TakePledge: React.FC = () => {
         recognitionRef.current.abort();
         recognitionRef.current = null;
       }
-      // Clear skip button timer
       if (skipTimerRef.current) {
         clearTimeout(skipTimerRef.current);
         skipTimerRef.current = null;
       }
+      // Stop camera stream if active
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach(t => t.stop());
+      }
+      // Revoke any object URL
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
     };
   }, []);
+
+  const startVideoRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      cameraStreamRef.current = stream;
+      videoChunksRef.current = [];
+      setRecordingSeconds(0);
+      setVideoError('');
+
+      const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
+        .find(t => MediaRecorder.isTypeSupported(t)) || '';
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) videoChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        const elapsed = Math.round((Date.now() - recordingStartTimeRef.current) / 1000);
+        if (liveVideoRef.current) liveVideoRef.current.srcObject = null;
+        stream.getTracks().forEach(t => t.stop());
+        cameraStreamRef.current = null;
+
+        if (elapsed < MIN_RECORDING_SECONDS) {
+          setVideoPhase('idle');
+          setVideoError(`Recording must be at least ${MIN_RECORDING_SECONDS} seconds. You recorded ${elapsed}s. Please try again.`);
+          return;
+        }
+        const blobType = (mimeType || 'video/webm').split(';')[0];
+        const blob = new Blob(videoChunksRef.current, { type: blobType });
+        const url = URL.createObjectURL(blob);
+        setVideoBlob(blob);
+        setVideoUrl(url);
+        setVideoError('');
+        setVideoPhase('preview');
+      };
+
+      recorder.start(250);
+      recordingStartTimeRef.current = Date.now();
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(Math.floor((Date.now() - recordingStartTimeRef.current) / 1000));
+      }, 500);
+      setVideoPhase('recording');
+    } catch (err) {
+      console.error('Camera error:', err);
+      alert('Camera access denied. Please allow camera and microphone permissions.');
+    }
+  };
+
+  const stopVideoRecording = () => {
+    mediaRecorderRef.current?.stop();
+  };
+
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
+      const url = URL.createObjectURL(file);
+      setVideoBlob(file);
+      setVideoUrl(url);
+      setVideoError('');
+      setVideoPhase('preview');
+    }
+  };
+
+  const removeVideo = () => {
+    if (videoUrl) URL.revokeObjectURL(videoUrl);
+    setVideoBlob(null);
+    setVideoUrl(null);
+    setVideoPhase('idle');
+    if (uploadVideoRef.current) uploadVideoRef.current.value = '';
+  };
+
+  const handleContinue = async () => {
+    if (!videoBlob) {
+      setVideoError('Please record or upload a video to continue.');
+      return;
+    }
+    const doctorData = getDoctorData();
+    if (doctorData) {
+      try {
+        await saveVideoToDB(doctorData.id, videoBlob);
+      } catch (err) {
+        console.error('Failed to save video to IndexedDB:', err);
+      }
+      try {
+        await uploadVideoToServer(doctorData.id, videoBlob);
+      } catch (err) {
+        console.error('Failed to upload video to server:', err);
+      }
+    }
+    navigate('/thank-you');
+  };
 
   
 
@@ -619,14 +748,97 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                       )}
                     </>
                   ) : (
-                    /* Just Continue button - Shown after pledge is detected */
+                    /* Continue section - Shown after pledge is detected */
                     <div className="flex flex-col items-center justify-center animate-fade-in">
                      <h3 className="text-gray-800 leading-snug mb-2 lg:mb-4 xl:mb-6 text-center pledge-text text-[20px] md:text-[30px] font-bold">
                        I pledge to regain coNFidence in my acne patients with minimal dietary restrictions and spreading awareness on treatment compliance
                       </h3>
+
+                      {/* Video Record / Upload Section */}
+                      <div className="w-full max-w-sm mx-auto mb-4">
+
+                        {videoPhase === 'recording' && (
+                          <div className="flex flex-col items-center gap-2">
+                            <video
+                              ref={attachLiveVideo}
+                              autoPlay
+                              muted
+                              playsInline
+                              className="w-full rounded-xl border border-gray-300"
+                            />
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse inline-block" />
+                              <span className="text-sm font-mono font-semibold text-gray-700">
+                                {String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:{String(recordingSeconds % 60).padStart(2, '0')}
+                              </span>
+                            </div>
+                            <button
+                              onClick={stopVideoRecording}
+                              disabled={recordingSeconds < MIN_RECORDING_SECONDS}
+                              className="flex items-center gap-2 px-6 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full font-medium transition-all duration-300"
+                            >
+                              <span className="w-3 h-3 bg-white rounded-sm inline-block" />
+                              Stop Recording
+                            </button>
+                          </div>
+                        )}
+
+                        {videoPhase === 'idle' && (
+                          <div className="flex flex-col gap-3">
+                            <button
+                              onClick={startVideoRecording}
+                              className="flex items-center justify-center gap-2 w-full px-6 py-2 bg-[#A82682] hover:bg-[#8e1f6e] text-white rounded-full font-medium transition-all duration-300"
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+                              </svg>
+                              Record Video
+                            </button>
+                            <label className="flex items-center justify-center gap-2 w-full px-6 py-2 border-2 border-[#A82682] text-[#A82682] hover:bg-[#A82682] hover:text-white rounded-full font-medium transition-all duration-300 cursor-pointer">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                              </svg>
+                              Upload Video
+                              <input
+                                ref={uploadVideoRef}
+                                type="file"
+                                accept="video/*"
+                                className="hidden"
+                                onChange={handleVideoUpload}
+                              />
+                            </label>
+                            <p className="text-gray-500 text-xs text-center">* Record or upload a video to enable Continue</p>
+                          </div>
+                        )}
+
+                        {videoPhase === 'preview' && (
+                          <div className="flex flex-col items-center gap-2">
+                            <video
+                              key={videoUrl || ''}
+                              src={videoUrl || ''}
+                              controls
+                              playsInline
+                              preload="auto"
+                              className="w-full rounded-xl border border-gray-300"
+                            />
+                            <button
+                              onClick={removeVideo}
+                              className="flex items-center gap-1.5 px-5 py-1.5 border border-gray-400 text-gray-600 hover:border-[#A82682] hover:text-[#A82682] rounded-full text-sm font-medium transition-all duration-300"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Retake
+                            </button>
+                          </div>
+                        )}
+
+                      </div>
+
                       <button
-                        onClick={() => navigate('/thank-you')}
-                        className="prplbtn1 shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300"
+                        onClick={handleContinue}
+                        disabled={!videoBlob}
+                        className="prplbtn1 shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md"
                       >
                         Continue
                       </button>

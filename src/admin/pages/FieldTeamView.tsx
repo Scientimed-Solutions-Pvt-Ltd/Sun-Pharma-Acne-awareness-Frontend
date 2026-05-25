@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getFieldTeam, bulkImportDoctors, downloadDoctorSampleCsv } from '../../services/adminApi';
 import type { FieldTeam, Doctor } from '../../services/adminApi';
+import { hasVideoInDB, getVideoStatusFromServer } from '../../services/api';
 
 type FieldTeamWithDoctors = FieldTeam & { doctors?: Doctor[] };
 
@@ -11,7 +12,30 @@ const FieldTeamView: React.FC = () => {
   const [fieldTeam, setFieldTeam] = useState<FieldTeamWithDoctors | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
+  const [videoAvailability, setVideoAvailability] = useState<Record<number, boolean>>({});
+  const [videoModalUrl, setVideoModalUrl] = useState<string | null>(null);
+  const [videoModalName, setVideoModalName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadVideoAvailability = async (doctors: Doctor[]) => {
+    if (!doctors || doctors.length === 0) return;
+    const availability: Record<number, boolean> = {};
+    await Promise.all(
+      doctors.map(async (doc: Doctor) => {
+        try {
+          const serverStatus = await getVideoStatusFromServer(doc.id);
+          if (serverStatus.has_video) {
+            availability[doc.id] = true;
+          } else {
+            availability[doc.id] = await hasVideoInDB(doc.id);
+          }
+        } catch {
+          availability[doc.id] = false;
+        }
+      })
+    );
+    setVideoAvailability(availability);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -20,6 +44,7 @@ const FieldTeamView: React.FC = () => {
         const response = await getFieldTeam(parseInt(id));
         if (response.success) {
           setFieldTeam(response.data);
+          await loadVideoAvailability(response.data.doctors || []);
         }
       } catch (error) {
         console.error('Failed to load field team:', error);
@@ -30,6 +55,12 @@ const FieldTeamView: React.FC = () => {
     };
     loadData();
   }, [id, navigate]);
+
+  const closeVideoModal = () => {
+    if (videoModalUrl && videoModalUrl.startsWith('blob:')) URL.revokeObjectURL(videoModalUrl);
+    setVideoModalUrl(null);
+    setVideoModalName('');
+  };
 
   if (isLoading) {
     return (
@@ -128,6 +159,16 @@ const FieldTeamView: React.FC = () => {
                 {fieldTeam.doctors?.length || 0} doctors
               </span>
               <button
+                onClick={() => loadVideoAvailability(fieldTeam.doctors || [])}
+                title="Refresh video status"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+              <button
                 onClick={async () => {
                   try {
                     const blob = await downloadDoctorSampleCsv();
@@ -202,6 +243,9 @@ const FieldTeamView: React.FC = () => {
                       Pledge Status
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Video
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -210,7 +254,19 @@ const FieldTeamView: React.FC = () => {
                   {fieldTeam.doctors.map((doctor: Doctor) => (
                     <tr key={doctor.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="font-medium text-gray-800">{doctor.dr_name}</div>
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const photo = localStorage.getItem(`doctor_photo_${doctor.id}`);
+                            return photo ? (
+                              <img src={photo} alt={doctor.dr_name} className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                                {doctor.dr_name.charAt(0).toUpperCase()}
+                              </div>
+                            );
+                          })()}
+                          <div className="font-medium text-gray-800">{doctor.dr_name}</div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-gray-600">
                         {doctor.registration_no || '-'}
@@ -243,12 +299,25 @@ const FieldTeamView: React.FC = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <button
-                          onClick={() => navigate(`/admin/doctors/${doctor.id}`)}
-                          className="text-purple-600 hover:text-purple-800 text-sm font-medium"
-                        >
-                          View
-                        </button>
+                        {videoAvailability[doctor.id] ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Available
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                            Not Available
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => navigate(`/admin/doctors/${doctor.id}`)}
+                            className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                          >
+                            View
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -275,6 +344,26 @@ const FieldTeamView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Video Playback Modal */}
+      {videoModalUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl overflow-hidden w-full max-w-2xl mx-4 shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-3 bg-purple-700">
+              <span className="text-white font-semibold truncate">{videoModalName}</span>
+              <button onClick={closeVideoModal} className="text-white hover:text-gray-200 text-2xl leading-none">&times;</button>
+            </div>
+            <div className="bg-black">
+              <video
+                src={videoModalUrl}
+                controls
+                autoPlay
+                className="w-full max-h-[70vh]"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
