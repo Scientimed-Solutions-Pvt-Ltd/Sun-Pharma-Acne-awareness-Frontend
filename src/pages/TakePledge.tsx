@@ -63,6 +63,8 @@ const TakePledge: React.FC = () => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoPhase, setVideoPhase] = useState<'idle' | 'recording' | 'preview'>('idle');
   const [_videoError, setVideoError] = useState('');  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const MIN_RECORDING_SECONDS = 7;
 
@@ -585,9 +587,16 @@ const TakePledge: React.FC = () => {
         console.error('Failed to save video to IndexedDB:', err);
       }
       try {
-        await uploadVideoToServer(doctorData.id, videoBlob);
+        setIsUploading(true);
+        setUploadProgress(0);
+        await uploadVideoToServer(doctorData.id, videoBlob, (percent) => {
+          setUploadProgress(percent);
+        });
       } catch (err) {
         console.error('Failed to upload video to server:', err);
+      } finally {
+        setIsUploading(false);
+        setUploadProgress(null);
       }
     }
     navigate('/thank-you');
@@ -837,11 +846,26 @@ being stored/used through such portal/platform by Sunpharma and / or third party
 
                       <button
                         onClick={handleContinue}
-                        disabled={!videoBlob}
+                        disabled={!videoBlob || isUploading}
                         className="prplbtn1 shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md"
                       >
-                        Continue
+                        {isUploading ? 'Uploading...' : 'Continue'}
                       </button>
+
+                      {isUploading && uploadProgress !== null && (
+                        <div className="w-full max-w-xs mt-3">
+                          <div className="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Uploading video...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                            <div
+                              className="bg-gradient-to-r from-[#A82682] to-[#E91E63] h-2.5 rounded-full transition-all duration-300 ease-out"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

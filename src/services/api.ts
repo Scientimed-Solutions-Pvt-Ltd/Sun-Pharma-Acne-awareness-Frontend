@@ -330,18 +330,37 @@ export const hasVideoInDB = async (doctorId: number): Promise<boolean> => {
 };
 
 // === Backend video upload/status helpers ===
-export const uploadVideoToServer = async (doctorId: number, blob: Blob): Promise<void> => {
+export const uploadVideoToServer = async (
+  doctorId: number,
+  blob: Blob,
+  onProgress?: (percent: number) => void
+): Promise<void> => {
   const formData = new FormData();
-  // Convert blob to webm file
   formData.append('video', blob, `doctor_video_${doctorId}.webm`);
-  const response = await fetch(`${API_BASE_URL}/doctors/${doctorId}/video`, {
-    method: 'POST',
-    body: formData,
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/doctors/${doctorId}/video`);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        const err = JSON.parse(xhr.responseText || '{}');
+        reject(new Error(err.message || `Video upload failed: ${xhr.status}`));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error('Network error during video upload'));
+    xhr.send(formData);
   });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || `Video upload failed: ${response.status}`);
-  }
 };
 
 export const uploadPhotoToServer = async (doctorId: number, base64Photo: string): Promise<string | null> => {
