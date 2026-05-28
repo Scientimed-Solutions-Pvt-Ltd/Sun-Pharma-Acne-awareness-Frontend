@@ -49,6 +49,8 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
+const MAX_PHOTO_DIMENSION = 600;
+
 const getCroppedImg = async (imageSrc: string, pixelCrop: CroppedAreaPixels): Promise<string> => {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
@@ -58,8 +60,17 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: CroppedAreaPixels): Pr
     throw new Error('No 2d context');
   }
 
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  // Scale down to fit within MAX_PHOTO_DIMENSION to keep localStorage usage small
+  let outputWidth = pixelCrop.width;
+  let outputHeight = pixelCrop.height;
+  if (outputWidth > MAX_PHOTO_DIMENSION || outputHeight > MAX_PHOTO_DIMENSION) {
+    const scale = MAX_PHOTO_DIMENSION / Math.max(outputWidth, outputHeight);
+    outputWidth = Math.round(outputWidth * scale);
+    outputHeight = Math.round(outputHeight * scale);
+  }
+
+  canvas.width = outputWidth;
+  canvas.height = outputHeight;
 
   ctx.drawImage(
     image,
@@ -69,11 +80,11 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: CroppedAreaPixels): Pr
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    outputWidth,
+    outputHeight
   );
 
-  return canvas.toDataURL('image/jpeg');
+  return canvas.toDataURL('image/jpeg', 0.7);
 };
 
 const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, error, existingDoctors = [], initialDoctor }) => {

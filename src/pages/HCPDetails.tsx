@@ -65,7 +65,20 @@ const HCPDetails: React.FC = () => {
         console.log('Doctor data saved to localStorage');
         // Persist photo against doctor ID so HCP list can display it
         if (data.photo) {
-          localStorage.setItem(`doctor_photo_${response.data.id}`, data.photo);
+          try {
+            localStorage.setItem(`doctor_photo_${response.data.id}`, data.photo);
+          } catch (e) {
+            // localStorage quota exceeded – clear old photos and retry
+            console.warn('localStorage quota exceeded, clearing old photos');
+            Object.keys(localStorage)
+              .filter(key => key.startsWith('doctor_photo_'))
+              .forEach(key => localStorage.removeItem(key));
+            try {
+              localStorage.setItem(`doctor_photo_${response.data.id}`, data.photo);
+            } catch (_) {
+              console.warn('Photo too large for localStorage, skipping local cache');
+            }
+          }
           // Also upload to server so it appears in reports
           uploadPhotoToServer(response.data.id, data.photo).catch(() => {});
         }
