@@ -575,12 +575,8 @@ const TakePledge: React.FC = () => {
   };
 
   const handleContinue = async () => {
-    if (!videoBlob) {
-      setVideoError('Please record or upload a video to continue.');
-      return;
-    }
     const doctorData = getDoctorData();
-    if (doctorData) {
+    if (doctorData && videoBlob) {
       try {
         await saveVideoToDB(doctorData.id, videoBlob);
       } catch (err) {
@@ -618,7 +614,7 @@ const TakePledge: React.FC = () => {
   }, [isMenuOpen]);
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden">
+    <div className="h-screen flex flex-col relative overflow-hidden md:overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-right md:bg-center bg-no-repeat"
@@ -675,8 +671,8 @@ being stored/used through such portal/platform by Sunpharma and / or third party
           <p className="text-[12px] lg:text-[14px] xl:text-[15px] text-gray-900 font-medium">Doctor Name: <span className="font-normal">{doctorName || 'N/A'}</span></p>
         </div>
         
-       <main className="flex-1 flex items-center justify-center text-center">
-  <div className="w-[90%] lg:w-[80%] flex flex-col md:flex-row gap-2 lg:gap-4 justify-center items-center py-2 lg:py-4 xl:py-8 text-center pledge-container">
+       <main className="flex-1 flex items-center justify-center text-center overflow-y-auto">
+  <div className="w-[90%] lg:w-[80%] flex flex-col md:flex-row gap-2 lg:gap-4 justify-center items-center py-2 lg:py-4 xl:py-8 pb-20 md:pb-4 text-center pledge-container">
               
 
                 {/* Text Content */}
@@ -758,7 +754,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                     </>
                   ) : (
                     /* Continue section - Shown after pledge is detected */
-                    <div className="flex flex-col items-center justify-center animate-fade-in">
+                    <div className="flex flex-col items-center justify-center animate-fade-in w-full">
                      <h3 className="text-gray-800 leading-snug mb-2 lg:mb-4 xl:mb-6 text-center pledge-text text-[20px] md:text-[30px] font-bold">
                        I pledge to regain coNFidence in my acne patients with minimal dietary restrictions and spreading awareness on treatment compliance
                       </h3>
@@ -773,7 +769,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                               autoPlay
                               muted
                               playsInline
-                              className="w-full rounded-xl border border-gray-300"
+                              className="w-full max-h-[40vh] object-contain rounded-xl border border-gray-300"
                             />
                             <div className="flex items-center gap-2">
                               <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse inline-block" />
@@ -816,7 +812,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                                 onChange={handleVideoUpload}
                               />
                             </label>
-                            <p className="text-gray-500 text-xs text-center">* Record or upload a video to enable Continue</p>
+                            <p className="text-gray-500 text-xs text-center">* Recording or uploading a video is optional</p>
                           </div>
                         )}
 
@@ -828,7 +824,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                               controls
                               playsInline
                               preload="auto"
-                              className="w-full rounded-xl border border-gray-300"
+                              className="w-full max-h-[40vh] object-contain rounded-xl border border-gray-300"
                             />
                             <button
                               onClick={removeVideo}
@@ -844,28 +840,31 @@ being stored/used through such portal/platform by Sunpharma and / or third party
 
                       </div>
 
-                      <button
-                        onClick={handleContinue}
-                        disabled={!videoBlob || isUploading}
-                        className="prplbtn1 shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md"
-                      >
-                        {isUploading ? 'Uploading...' : 'Continue'}
-                      </button>
+                      {/* Sticky bottom buttons on mobile */}
+                      <div className="fixed md:static bottom-0 left-0 right-0 md:relative bg-white/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t md:border-t-0 border-gray-200 p-3 md:p-0 z-30 flex flex-col items-center">
+                        <button
+                          onClick={handleContinue}
+                          disabled={isUploading}
+                          className="prplbtn1 shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md"
+                        >
+                          {isUploading ? 'Uploading...' : 'Continue'}
+                        </button>
 
-                      {isUploading && uploadProgress !== null && (
-                        <div className="w-full max-w-xs mt-3">
-                          <div className="flex justify-between text-xs text-gray-600 mb-1">
-                            <span>Uploading video...</span>
-                            <span>{uploadProgress}%</span>
+                        {isUploading && uploadProgress !== null && (
+                          <div className="w-full max-w-xs mt-3">
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                              <span>Uploading video...</span>
+                              <span>{uploadProgress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-[#A82682] to-[#E91E63] h-2.5 rounded-full transition-all duration-300 ease-out"
+                                style={{ width: `${uploadProgress}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                            <div
-                              className="bg-gradient-to-r from-[#A82682] to-[#E91E63] h-2.5 rounded-full transition-all duration-300 ease-out"
-                              style={{ width: `${uploadProgress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
