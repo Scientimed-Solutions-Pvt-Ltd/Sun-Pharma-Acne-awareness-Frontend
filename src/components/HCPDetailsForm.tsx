@@ -110,6 +110,7 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CroppedAreaPixels | null>(null);
   const [showCropper, setShowCropper] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileChooseRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Filter existing doctors based on HCP name input (show all if no search term)
@@ -274,6 +275,9 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    if (fileChooseRef.current) {
+      fileChooseRef.current.value = '';
+    }
   };
 
   const removePhoto = () => {
@@ -284,6 +288,9 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
     }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (fileChooseRef.current) {
+      fileChooseRef.current.value = '';
     }
   };
 
@@ -484,28 +491,47 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
               {photoError}
             </div>
           )}
-          {/* File input for photo */}
-          <div className="flex items-center border border-gray-300 rounded-lg bg-white overflow-hidden">
-            <label 
-              htmlFor="photo"
-              className="px-4 py-2 bg-gray-100 border-r border-gray-300 text-gray-700 text-sm cursor-pointer hover:bg-gray-200 whitespace-nowrap"
+          {/* Photo input options */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-700 text-sm cursor-pointer hover:bg-gray-50 transition-colors"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Take Photo
+            </button>
+            <button
+              type="button"
+              onClick={() => fileChooseRef.current?.click()}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-700 text-sm cursor-pointer hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               Choose File
-            </label>
-            <span className="px-4 py-2 text-gray-500 text-sm truncate flex-1">
-              {photoPreview ? 'Photo selected' : 'No File Chosen'}
-            </span>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              id="photo"
-              name="photo"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => { setPhotoError(''); handlePhotoChange(e); }}
-            />
+            </button>
           </div>
+          {/* Hidden file inputs */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => { setPhotoError(''); handlePhotoChange(e); }}
+          />
+          <input
+            type="file"
+            ref={fileChooseRef}
+            className="hidden"
+            accept="image/*"
+            onChange={(e) => { setPhotoError(''); handlePhotoChange(e); }}
+          />
+          {photoPreview && <p className="text-green-600 text-xs mt-1">Photo selected</p>}
           
           {photoPreview && (
             <div className="relative mt-2">

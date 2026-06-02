@@ -880,7 +880,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                          : 'scale-100'
                      }`}
                    />
-                   {/* Support Message */}
+                   {/* Support Message 
                    <div className="mt-3 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-center">
                      <p className="text-[10px] md:text-xs text-gray-600 leading-snug">
                        For any issues, please reach out to me directly.
@@ -889,6 +889,7 @@ being stored/used through such portal/platform by Sunpharma and / or third party
                        Contact No: 9653437188
                      </p>
                    </div>
+                   */}
                 </div>
               </div>
             
