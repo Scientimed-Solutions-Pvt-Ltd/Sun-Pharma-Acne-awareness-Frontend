@@ -329,11 +329,6 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
       setCityError('Please enter city');
       hasError = true;
     }
-
-    if (!formData.photo) {
-      setPhotoError('Please take a photo');
-      hasError = true;
-    }
     
     if (hasError) {
       return;
@@ -485,7 +480,7 @@ const HCPDetailsForm: React.FC<HCPDetailsFormProps> = ({ onSubmit, isLoading, er
         </div>
 
         <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-medium mb-2">Take Photo</label>
+          <label className="block text-gray-700 text-sm font-medium mb-2">Take Photo <span className="text-gray-400 font-normal">(Optional)</span></label>
           {photoError && (
             <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
               {photoError}
